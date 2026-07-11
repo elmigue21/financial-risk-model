@@ -121,7 +121,7 @@ export function useAdvisor(persist?: (patch: UpdateHistoryInput) => void) {
     fetchSuggestions([]);
   }
 
-  /** Resume a saved conversation without re-generating anything. */
+  /** Resume a saved conversation; regenerate the question chips if none saved. */
   function resume(
     context: AdvisorContext,
     savedMessages: ChatMessage[],
@@ -131,6 +131,11 @@ export function useAdvisor(persist?: (patch: UpdateHistoryInput) => void) {
     setMessages(savedMessages);
     setSuggestions(savedSuggestions);
     setChatInput("");
+    // Older records (or ones whose chips weren't persisted) have no saved
+    // suggestions — regenerate them so the advisor's questions still appear.
+    if (savedSuggestions.length === 0 && savedMessages.length > 0) {
+      fetchSuggestions(savedMessages);
+    }
   }
 
   /** Send a message typed by the customer. */

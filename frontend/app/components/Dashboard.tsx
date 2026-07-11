@@ -21,7 +21,9 @@ import { Insights, InsightItem } from "./Insights";
 import { CriticalIssues, CriticalItem } from "./CriticalIssues";
 import { RecommendedActions } from "./RecommendedActions";
 import { InterpretationTable } from "./InterpretationTable";
+import { TrendsSection } from "./TrendsSection";
 import { Card } from "./ui";
+import type { HistorySummary } from "../lib/history";
 
 const TONE_ORDER: Record<Tone, number> = { high: 0, medium: 1, low: 2 };
 
@@ -30,12 +32,14 @@ export function Dashboard({
   inputs,
   aiFlags,
   assessedOn,
+  history,
   chat,
 }: {
   result: PredictResult;
   inputs: Record<string, number>;
   aiFlags: AiFlag[] | null;
   assessedOn: string;
+  history: HistorySummary[];
   chat: React.ReactNode;
 }) {
   const index = riskIndex(result.probability);
@@ -104,6 +108,8 @@ export function Dashboard({
           <RatioGrid rows={rows} />
         </div>
       </div>
+
+      <TrendsSection points={history} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <RiskFactors contributions={result.contributions} />

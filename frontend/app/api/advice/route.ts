@@ -1,15 +1,24 @@
 import Groq from "groq-sdk";
 import { listMonths } from "../../lib/db";
 import { summarizeMonths } from "../../lib/monthly";
+import { FIELDS } from "../../fields";
+import {
+  classifyRatio,
+  formatValue,
+  healthScore,
+  indexBand,
+  riskIndex as riskIndexOf,
+} from "../../lib/scoring";
 
 export const runtime = "nodejs";
 
 const SYSTEM_PROMPT = `You are a friendly financial advisor chatting with a small business owner who is NOT a finance expert.
 Explain things in plain English, avoid jargon, and keep replies short.
-You are given the company's numbers, a computed risk result, and (when available) the owner's month-by-month financial history.
+You are given the company's DASHBOARD — its health score, risk index, every financial ratio with a plain-English status (Healthy / Weak / Poor / Critical), the biggest risk drivers, and (when available) the owner's month-by-month history.
 Your job is to give ADVICE — practical, specific recommendations they can act on.
 
-When a FINANCIAL HISTORY is provided, ground your advice in the TREND, not just the latest month: call out whether revenue, profit, cash, debt and risk are improving or deteriorating over time, and tailor advice to that direction.
+INTERPRET THE WHOLE DASHBOARD, not just the single biggest risk driver. Read across all the KPIs — health score, risk index, and each ratio's status — and explain what they mean together (e.g. "profitability is fine but liquidity is the weak spot"). Give the strongest ratios their due, then focus effort on the weak ones.
+When a FINANCIAL HISTORY is provided, also ground your advice in the TREND: call out whether revenue, profit, cash, debt and risk are improving or deteriorating over time, and tailor advice to that direction.
 
 For your FIRST message (the opening assessment), respond with:
 1. One sentence on what the result means for them (mention the trend if history is present).
@@ -21,12 +30,6 @@ After that, the owner will either ASK a question or GIVE YOU INFORMATION about t
 - If they ask a question, answer it directly and briefly.
 Always finish with a clear, concrete next step. Keep follow-ups under 150 words.
 Be encouraging but honest. If asked something outside company finance, gently steer back.`;
-
-const RISK_LABELS: Record<string, string> = {
-  LOW_RISK: "low risk",
-  MEDIUM_RISK: "medium risk",
-  HIGH_RISK: "high risk",
-};
 
 export async function POST(req: Request) {
   if (!process.env.GROQ_API_KEY) {
@@ -59,24 +62,33 @@ export async function POST(req: Request) {
     /* no history layer available — advise from the snapshot only */
   }
 
+  // Dashboard KPIs, interpreted the same way the UI shows them, so the advisor
+  // reads across ALL the numbers rather than only the top risk driver.
+  const idx =
+    typeof riskIndex === "number" ? riskIndex : riskIndexOf(result?.probability ?? 0);
+  const kpiLines = FIELDS.filter((f) => inputs?.[f.key] !== undefined).map((f) => {
+    const status = classifyRatio(f, inputs[f.key]);
+    return `- ${f.shortLabel}: ${formatValue(f, inputs[f.key])} — ${status.status}${
+      f.used ? "" : " (context only, not scored)"
+    }`;
+  });
+
   const summary = [
-    "CONTEXT — this company's health check (latest month):",
-    `Risk result: ${RISK_LABELS[result?.risk_level] ?? result?.risk_level}`,
+    "DASHBOARD — this company's latest month:",
+    `Health score: ${healthScore(result?.probability ?? 0)}/100`,
+    `Risk index: ${idx}/100 (${indexBand(idx).label})`,
     `Estimated chance of financial trouble: ${Math.round(
       (result?.probability ?? 0) * 100
     )}%`,
-    typeof riskIndex === "number" ? `Risk Index (0-100, higher = worse): ${riskIndex}` : "",
-    topDrivers.length
-      ? `Biggest risk drivers per the model: ${topDrivers.join(", ")}.`
-      : "",
+    topDrivers.length ? `Biggest risk drivers per the model: ${topDrivers.join(", ")}.` : "",
     "",
-    "The company's reported figures:",
-    ...Object.entries(inputs ?? {}).map(([k, v]) => `- ${k}: ${v}`),
+    "Financial ratios and their status:",
+    ...kpiLines,
     history ? "\n" + history : "",
     "",
     isOpening
-      ? "Give the owner their opening assessment now."
-      : "Use this context to answer the owner's questions below.",
+      ? "Give the owner their opening assessment now, interpreting the dashboard as a whole."
+      : "Use this dashboard context to answer the owner's questions below.",
   ]
     .filter(Boolean)
     .join("\n");

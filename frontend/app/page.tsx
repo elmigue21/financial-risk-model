@@ -13,6 +13,7 @@ import { AdvisorChat } from "./components/AdvisorChat";
 
 export default function Home() {
   const [record, setRecord] = useState<HistoryRecord | null>(null);
+  const [history, setHistory] = useState<HistorySummary[]>([]);
   const [aiFlags, setAiFlags] = useState<AiFlag[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,6 +49,7 @@ export default function Home() {
       const listRes = await fetch("/api/history", { cache: "no-store" });
       if (!listRes.ok) throw new Error("Could not load your data.");
       const { records } = (await listRes.json()) as { records: HistorySummary[] };
+      setHistory(records);
       const latest = records.find((r) => r.month); // list is newest-first
       if (!latest) {
         setRecord(null);
@@ -146,6 +148,7 @@ export default function Home() {
           inputs={record.inputs}
           aiFlags={aiFlags}
           assessedOn={record.assessedOn ?? (record.month ? formatMonth(record.month) : "—")}
+          history={history}
           chat={
             <AdvisorChat
               messages={advisor.messages}

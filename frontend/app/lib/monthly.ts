@@ -221,6 +221,19 @@ export function formatMoney(value: number | undefined): string {
   });
 }
 
+/** Compact money for chart axes/labels, e.g. 85000 → "$85k", -5200 → "-$5.2k". */
+export function formatMoneyShort(value: number | undefined): string {
+  if (value === undefined || Number.isNaN(value)) return "—";
+  const sign = value < 0 ? "-" : "";
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) {
+    const k = abs / 1_000;
+    return `${sign}$${k >= 100 ? Math.round(k) : k.toFixed(k >= 10 ? 0 : 1)}k`;
+  }
+  return `${sign}$${Math.round(abs)}`;
+}
+
 /** "2026-07" → "Jul 2026". */
 export function formatMonth(month: string): string {
   const [y, m] = month.split("-").map(Number);
