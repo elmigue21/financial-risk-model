@@ -119,51 +119,38 @@ function toRecord(row: Row): HistoryRecord {
   };
 }
 
+/** The id of the record for a given month, or null if none exists yet. */
+export function findPredictionByMonth(month: string): number | null {
+  const row = db.prepare(`SELECT id FROM predictions WHERE month = ?`).get(month) as
+    | { id: number }
+    | undefined;
+  return row ? row.id : null;
+}
+
 /**
- * Save a session. When `month` is set the row is upserted (one assessment per
- * month) and its AI data is reset, since the figures — and therefore the score —
- * are fresh. Returns the row id.
+ * Save a new session; returns its id. One record per month — the unique index
+ * on `month` makes a duplicate insert throw (surfaced as a 409 by the route),
+ * so an existing month must be deleted before it can be re-entered.
  */
 export function createPrediction(data: CreateHistoryInput): number {
-  const params = {
-    assessed_on: data.assessedOn ?? null,
-    month: data.month ?? null,
-    figures: data.figures ? JSON.stringify(data.figures) : null,
-    inputs: JSON.stringify(data.inputs ?? {}),
-    probability: data.result.probability,
-    risk_level: data.result.risk_level,
-    confidence: data.result.confidence,
-    risk_index: data.riskIndex,
-    contributions: JSON.stringify(data.result.contributions ?? []),
-  };
   const info = db
     .prepare(
       `INSERT INTO predictions
          (assessed_on, month, figures, inputs, probability, risk_level, confidence, risk_index, contributions, ai_flags, messages, suggestions)
        VALUES
-         (@assessed_on, @month, @figures, @inputs, @probability, @risk_level, @confidence, @risk_index, @contributions, NULL, '[]', '[]')
-       ON CONFLICT(month) DO UPDATE SET
-         assessed_on   = excluded.assessed_on,
-         figures       = excluded.figures,
-         inputs        = excluded.inputs,
-         probability   = excluded.probability,
-         risk_level    = excluded.risk_level,
-         confidence    = excluded.confidence,
-         risk_index    = excluded.risk_index,
-         contributions = excluded.contributions,
-         ai_flags      = NULL,
-         messages      = '[]',
-         suggestions   = '[]',
-         created_at    = datetime('now')`
+         (@assessed_on, @month, @figures, @inputs, @probability, @risk_level, @confidence, @risk_index, @contributions, NULL, '[]', '[]')`
     )
-    .run(params);
-
-  if (data.month) {
-    const row = db
-      .prepare(`SELECT id FROM predictions WHERE month = ?`)
-      .get(data.month) as { id: number } | undefined;
-    if (row) return row.id;
-  }
+    .run({
+      assessed_on: data.assessedOn ?? null,
+      month: data.month ?? null,
+      figures: data.figures ? JSON.stringify(data.figures) : null,
+      inputs: JSON.stringify(data.inputs ?? {}),
+      probability: data.result.probability,
+      risk_level: data.result.risk_level,
+      confidence: data.result.confidence,
+      risk_index: data.riskIndex,
+      contributions: JSON.stringify(data.result.contributions ?? []),
+    });
   return Number(info.lastInsertRowid);
 }
 

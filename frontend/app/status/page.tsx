@@ -11,11 +11,12 @@ import {
   MonthlyKey,
   MonthlyFigures,
   computeRatios,
-  equity,
   netProfit,
   formatMoney,
   formatMonth,
   currentMonth,
+  validateFigures,
+  hasBlockingErrors,
 } from "../lib/monthly";
 import { Card, CardTitle, TONE_BG_SOFT, TONE_TEXT } from "../components/ui";
 
@@ -46,6 +47,12 @@ export default function StatusPage() {
     loadList();
   }, []);
 
+  async function remove(id: number, label: string) {
+    if (!confirm(`Delete ${label}? You can then re-enter it.`)) return;
+    await fetch(`/api/history/${id}`, { method: "DELETE" });
+    loadList();
+  }
+
   const figures: MonthlyFigures = {
     revenue: Number(form.revenue) || 0,
     expenses: Number(form.expenses) || 0,
@@ -53,10 +60,18 @@ export default function StatusPage() {
     cash: Number(form.cash) || 0,
     assets: Number(form.assets) || 0,
     liabilities: Number(form.liabilities) || 0,
+    equity: Number(form.equity) || 0,
   };
+
+  const dirty = Object.values(form).some((v) => v.trim() !== "");
+  const issues = validateFigures(figures);
+  const errors = issues.filter((i) => i.severity === "error");
+  const warnings = issues.filter((i) => i.severity === "warning");
+  const blocked = hasBlockingErrors(issues);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (blocked) return;
     setSaving(true);
     setError("");
     setSavedMonth("");
@@ -82,7 +97,10 @@ export default function StatusPage() {
           riskIndex: riskIndex(result.probability),
         }),
       });
-      if (!hres.ok) throw new Error("Could not save this month.");
+      if (!hres.ok) {
+        const msg = (await hres.json().catch(() => null))?.error;
+        throw new Error(msg || "Could not save this month.");
+      }
       setSavedMonth(month);
       setForm(EMPTY);
       loadList();
@@ -177,19 +195,51 @@ export default function StatusPage() {
                   </span>
                 </span>
                 <span className="text-muted">
-                  Equity{" "}
-                  <span className="font-semibold text-ink">
-                    {formatMoney(equity(figures))}
+                  Balance check{" "}
+                  <span
+                    className={`font-semibold ${
+                      Math.abs(figures.assets - (figures.liabilities + figures.equity)) <=
+                      Math.max(1, figures.assets * 0.005)
+                        ? "text-low"
+                        : "text-high"
+                    }`}
+                  >
+                    {Math.abs(figures.assets - (figures.liabilities + figures.equity)) <=
+                    Math.max(1, figures.assets * 0.005)
+                      ? "balances ✓"
+                      : "off ✗"}
                   </span>
                 </span>
               </div>
 
+              {/* Validation — errors block saving, warnings just flag typos */}
+              {dirty && issues.length > 0 && (
+                <div className="flex flex-col gap-2">
+                  {errors.map((it, i) => (
+                    <p
+                      key={`e${i}`}
+                      className="rounded-field bg-high-bg px-3 py-2 text-xs text-high"
+                    >
+                      ✗ {it.message}
+                    </p>
+                  ))}
+                  {warnings.map((it, i) => (
+                    <p
+                      key={`w${i}`}
+                      className="rounded-field bg-medium-bg px-3 py-2 text-xs text-medium"
+                    >
+                      ⚠ {it.message}
+                    </p>
+                  ))}
+                </div>
+              )}
+
               <button
                 type="submit"
-                disabled={saving}
+                disabled={saving || blocked}
                 className="rounded-field bg-brand px-4 py-4 text-base font-semibold text-white shadow-soft transition hover:bg-brand-strong disabled:opacity-60"
               >
-                {saving ? "Saving…" : "Save & score this month"}
+                {saving ? "Saving…" : blocked ? "Fix the errors above to save" : "Save & score this month"}
               </button>
             </form>
           </Card>
@@ -207,15 +257,14 @@ export default function StatusPage() {
               <div className="flex flex-col gap-2">
                 {records.map((r) => {
                   const band = indexBand(r.riskIndex);
+                  const label = r.month ? formatMonth(r.month) : "this month";
                   return (
                     <div
                       key={r.id}
                       className="flex items-center justify-between gap-3 rounded-field bg-field p-3"
                     >
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-ink">
-                          {r.month ? formatMonth(r.month) : "—"}
-                        </span>
+                        <span className="text-sm font-semibold text-ink">{label}</span>
                         {r.figures && (
                           <span className="text-xs text-muted">
                             Rev {formatMoney(r.figures.revenue)} · Cash{" "}
@@ -223,11 +272,20 @@ export default function StatusPage() {
                           </span>
                         )}
                       </div>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_BG_SOFT[band.tone]} ${TONE_TEXT[band.tone]}`}
-                      >
-                        {r.riskIndex}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_BG_SOFT[band.tone]} ${TONE_TEXT[band.tone]}`}
+                        >
+                          {r.riskIndex}
+                        </span>
+                        <button
+                          onClick={() => remove(r.id, label)}
+                          aria-label={`Delete ${label}`}
+                          className="rounded-field px-2 py-1 text-xs font-semibold text-high transition hover:bg-high-bg"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

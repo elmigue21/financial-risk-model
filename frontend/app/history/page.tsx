@@ -10,12 +10,7 @@ import {
   indexBand,
 } from "../lib/scoring";
 import { severityTone } from "../lib/insights";
-import {
-  MONTHLY_FIELDS,
-  equity,
-  netProfit,
-  formatMoney,
-} from "../lib/monthly";
+import { MONTHLY_FIELDS, netProfit, formatMoney, formatMonth } from "../lib/monthly";
 import { useAdvisor } from "../lib/useAdvisor";
 import type { HistoryRecord, HistorySummary, UpdateHistoryInput } from "../lib/history";
 import { Card, CardTitle, StatusPill, TONE_BG_SOFT, TONE_TEXT } from "../components/ui";
@@ -132,7 +127,7 @@ export default function HistoryPage() {
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-semibold text-ink">
-                      {formatWhen(r.createdAt)}
+                      {r.month ? formatMonth(r.month) : formatWhen(r.createdAt)}
                     </span>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_BG_SOFT[band.tone]} ${TONE_TEXT[band.tone]}`}
@@ -251,12 +246,6 @@ function Detail({
               <p className="text-xs text-muted">Net profit</p>
               <p className="mt-1 text-base font-bold text-ink">
                 {formatMoney(netProfit(figures))}
-              </p>
-            </div>
-            <div className="rounded-field bg-field p-3">
-              <p className="text-xs text-muted">Equity</p>
-              <p className="mt-1 text-base font-bold text-ink">
-                {formatMoney(equity(figures))}
               </p>
             </div>
           </div>

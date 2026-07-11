@@ -17,7 +17,8 @@ export type MonthlyKey =
   | "interest"
   | "cash"
   | "assets"
-  | "liabilities";
+  | "liabilities"
+  | "equity";
 
 export interface MonthlyFigures {
   revenue: number;
@@ -26,6 +27,7 @@ export interface MonthlyFigures {
   cash: number;
   assets: number;
   liabilities: number;
+  equity: number;
 }
 
 export interface MonthlyField {
@@ -84,14 +86,105 @@ export const MONTHLY_FIELDS: MonthlyField[] = [
     placeholder: "200000",
     section: "balance",
   },
+  {
+    key: "equity",
+    label: "Owner's equity",
+    hint: "Your stake in the business. Assets should equal liabilities + equity.",
+    placeholder: "100000",
+    section: "balance",
+  },
 ];
 
 // ---- Derived figures (accounting identities) -------------------------------
 
-export const equity = (f: MonthlyFigures) => f.assets - f.liabilities;
+export const equity = (f: MonthlyFigures) => f.equity;
 export const netProfit = (f: MonthlyFigures) => f.revenue - f.expenses;
 /** Operating profit (EBIT) ≈ net profit with interest added back. */
 export const operatingProfit = (f: MonthlyFigures) => netProfit(f) + f.interest;
+
+// ---- Input validation ------------------------------------------------------
+
+export interface FigureIssue {
+  severity: "error" | "warning";
+  message: string;
+}
+
+const NON_NEGATIVE: Array<[MonthlyKey, string]> = [
+  ["revenue", "Revenue"],
+  ["expenses", "Expenses"],
+  ["interest", "Interest paid"],
+  ["cash", "Cash on hand"],
+  ["assets", "Total assets"],
+  ["liabilities", "Total liabilities"],
+];
+
+/**
+ * Sanity-check a month's figures so obviously wrong or inconsistent numbers get
+ * caught before scoring. Errors block saving; warnings just flag likely typos.
+ * Equity may be negative (insolvency), so it's exempt from the non-negative rule.
+ */
+export function validateFigures(f: MonthlyFigures): FigureIssue[] {
+  const issues: FigureIssue[] = [];
+
+  for (const [key, label] of NON_NEGATIVE) {
+    if (f[key] < 0)
+      issues.push({ severity: "error", message: `${label} can't be negative.` });
+  }
+
+  // Balance sheet must balance: assets = liabilities + equity.
+  const expected = f.liabilities + f.equity;
+  const tol = Math.max(1, Math.abs(f.assets) * 0.005);
+  if (f.assets > 0 && Math.abs(f.assets - expected) > tol) {
+    issues.push({
+      severity: "error",
+      message: `Balance sheet doesn't add up: assets (${formatMoney(
+        f.assets
+      )}) should equal liabilities + equity (${formatMoney(expected)}).`,
+    });
+  }
+
+  // Part-of-whole checks — a part can't exceed its whole.
+  if (f.assets > 0 && f.cash > f.assets)
+    issues.push({
+      severity: "error",
+      message: `Cash (${formatMoney(f.cash)}) can't be more than total assets (${formatMoney(
+        f.assets
+      )}).`,
+    });
+  if (f.expenses > 0 && f.interest > f.expenses)
+    issues.push({
+      severity: "error",
+      message: `Interest paid (${formatMoney(
+        f.interest
+      )}) can't be more than total expenses (${formatMoney(f.expenses)}).`,
+    });
+
+  // Plausibility warnings — likely typos, not impossible.
+  if (f.assets === 0)
+    issues.push({
+      severity: "warning",
+      message: "Enter total assets so we can score returns and leverage.",
+    });
+  if (f.revenue === 0)
+    issues.push({ severity: "warning", message: "No revenue recorded — is that right?" });
+  else if (netProfit(f) / f.revenue > 0.9)
+    issues.push({
+      severity: "warning",
+      message: "That's an unusually high profit margin — double-check your expenses.",
+    });
+  if (f.revenue > 0 && f.expenses === 0)
+    issues.push({ severity: "warning", message: "No expenses recorded — double-check." });
+  if (f.liabilities > 0 && (f.interest * 12) / f.liabilities > 1)
+    issues.push({
+      severity: "warning",
+      message: "Interest looks high for your debt level — check the amount.",
+    });
+
+  return issues;
+}
+
+export const hasBlockingErrors = (issues: FigureIssue[]) =>
+  issues.some((i) => i.severity === "error");
 
 /** No-interest months have effectively unlimited coverage; cap it high. */
 const MAX_COVERAGE = 999;
