@@ -44,6 +44,20 @@ MODEL_FEATURES = [
     "bin_total debt / ebitda",
 ]
 
+# Model column -> API input name (reverse of FEATURE_MAPPING) so we can label
+# each contribution with the field the user actually entered.
+MODEL_COL_TO_API = {v: k for k, v in FEATURE_MAPPING.items()}
+
+# Human-friendly labels for the "Top Risk Factors" chart.
+FACTOR_LABELS = {
+    "return on assets": "Return on assets",
+    "net income margin": "Profit margin",
+    "total debt / total capital (%)": "Debt ratio",
+    "ebitda / interest expense": "Interest coverage",
+    "fixed asset turnover": "Fixed asset turnover",
+    "total debt / ebitda": "Debt / EBITDA",
+}
+
 
 def binned_runscoring(df, value_col):
     """Replace a raw ratio with the historical default rate of its bin."""
@@ -84,6 +98,30 @@ def predict(inputs: dict) -> dict:
     X = df[[f for f in MODEL_FEATURES if f in df.columns]]
     probability = float(model.predict_proba(X)[:, 1][0])
 
+    # Per-feature risk contributions. The model is a linear LogisticRegression,
+    # so each feature's push on the log-odds is exactly coef * bin_rate. This is
+    # the real explanation of the score (not a heuristic). Only the 4 features
+    # the user actually enters are marked as scored drivers; the two hardcoded
+    # constants shift the baseline but aren't user-controllable.
+    contributions = []
+    coefs = model.coef_[0]
+    row = X.iloc[0]
+    for i, bin_col in enumerate(model.feature_names_in_):
+        if bin_col not in X.columns:
+            continue
+        raw_col = bin_col[len("bin_"):]
+        bin_rate = row[bin_col]
+        contribution = 0.0 if pd.isna(bin_rate) else float(coefs[i] * bin_rate)
+        api_name = MODEL_COL_TO_API.get(raw_col)
+        contributions.append(
+            {
+                "feature": api_name,
+                "label": FACTOR_LABELS.get(raw_col, raw_col),
+                "contribution": contribution,
+                "is_scored_driver": api_name is not None,
+            }
+        )
+
     # This model predicts a RARE event (default), so its output only ever spans
     # ~1.7%–5.6%. The original 0.4/0.7 thresholds were impossible to reach, so
     # everything came back LOW. These thresholds are calibrated to the model's
@@ -100,6 +138,7 @@ def predict(inputs: dict) -> dict:
         "probability": probability,
         "risk_level": risk_level,
         "confidence": min(0.95, max(0.6, abs(probability - 0.5) * 2)),
+        "contributions": contributions,
     }
 
 

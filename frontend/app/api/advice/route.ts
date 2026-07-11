@@ -1,17 +1,25 @@
 import Groq from "groq-sdk";
+import { listMonths } from "../../lib/db";
+import { summarizeMonths } from "../../lib/monthly";
 
 export const runtime = "nodejs";
 
 const SYSTEM_PROMPT = `You are a friendly financial advisor chatting with a small business owner who is NOT a finance expert.
 Explain things in plain English, avoid jargon, and keep replies short.
-You are given the company's numbers and a computed risk result as context.
+You are given the company's numbers, a computed risk result, and (when available) the owner's month-by-month financial history.
+Your job is to give ADVICE — practical, specific recommendations they can act on.
+
+When a FINANCIAL HISTORY is provided, ground your advice in the TREND, not just the latest month: call out whether revenue, profit, cash, debt and risk are improving or deteriorating over time, and tailor advice to that direction.
 
 For your FIRST message (the opening assessment), respond with:
-1. One sentence on what the result means for them.
+1. One sentence on what the result means for them (mention the trend if history is present).
 2. Two or three concrete, practical suggestions to improve or maintain their health.
 Keep it under 180 words and do not repeat the raw numbers back.
 
-For any FOLLOW-UP question, answer it directly and briefly, using the context.
+After that, the owner will either ASK a question or GIVE YOU INFORMATION about their business (often answering something you asked). In BOTH cases your reply must deliver advice:
+- If they give you information, briefly acknowledge it, then use that new detail to give MORE SPECIFIC, tailored recommendations than you could before.
+- If they ask a question, answer it directly and briefly.
+Always finish with a clear, concrete next step. Keep follow-ups under 150 words.
 Be encouraging but honest. If asked something outside company finance, gently steer back.`;
 
 const RISK_LABELS: Record<string, string> = {
@@ -30,24 +38,48 @@ export async function POST(req: Request) {
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  const { inputs, result, messages = [] } = await req.json();
+  const { inputs, result, riskIndex, messages = [] } = await req.json();
 
   const isOpening = !Array.isArray(messages) || messages.length === 0;
 
+  // Top drivers from the model's real per-feature contributions.
+  const topDrivers = Array.isArray(result?.contributions)
+    ? result.contributions
+        .filter((c: any) => c?.is_scored_driver)
+        .sort((a: any, b: any) => b.contribution - a.contribution)
+        .slice(0, 2)
+        .map((c: any) => c.label)
+    : [];
+
+  // The owner's month-by-month history, so advice can follow the trend.
+  let history = "";
+  try {
+    history = summarizeMonths(listMonths());
+  } catch {
+    /* no history layer available — advise from the snapshot only */
+  }
+
   const summary = [
-    "CONTEXT — this company's health check:",
+    "CONTEXT — this company's health check (latest month):",
     `Risk result: ${RISK_LABELS[result?.risk_level] ?? result?.risk_level}`,
     `Estimated chance of financial trouble: ${Math.round(
       (result?.probability ?? 0) * 100
     )}%`,
+    typeof riskIndex === "number" ? `Risk Index (0-100, higher = worse): ${riskIndex}` : "",
+    topDrivers.length
+      ? `Biggest risk drivers per the model: ${topDrivers.join(", ")}.`
+      : "",
     "",
     "The company's reported figures:",
     ...Object.entries(inputs ?? {}).map(([k, v]) => `- ${k}: ${v}`),
+    history ? "\n" + history : "",
     "",
     isOpening
       ? "Give the owner their opening assessment now."
       : "Use this context to answer the owner's questions below.",
-  ].join("\n");
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   try {
     const completion = await groq.chat.completions.create({
