@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FIELDS } from "../fields";
 import {
@@ -12,10 +12,13 @@ import {
 import { severityTone } from "../lib/insights";
 import { MONTHLY_FIELDS, netProfit, formatMoney, formatMonth } from "../lib/monthly";
 import { useAdvisor } from "../lib/useAdvisor";
+import { downloadCsv, historyToCsv, recordToCsv, recordSlug } from "../lib/report";
+import { exportElementToPdf } from "../lib/pdf";
 import type { HistoryRecord, HistorySummary, UpdateHistoryInput } from "../lib/history";
 import { Card, CardTitle, StatusPill, TONE_BG_SOFT, TONE_TEXT } from "../components/ui";
 import { TopCards } from "../components/TopCards";
 import { RiskFactors } from "../components/RiskFactors";
+import { ReportHeader } from "../components/ReportHeader";
 import { AdvisorChat } from "../components/AdvisorChat";
 
 const FIELD_BY_KEY = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
@@ -84,7 +87,7 @@ export default function HistoryPage() {
         <h1 className="text-2xl font-bold">Prediction history</h1>
         <p className="mt-1 text-sm text-muted">
           Every financial health check you&apos;ve run, with its AI insights and advisor
-          conversation. Stored locally on this machine.
+          conversation.
         </p>
       </header>
 
@@ -111,65 +114,89 @@ export default function HistoryPage() {
       )}
 
       {records && records.length > 0 && (
-        <div className="grid gap-6 lg:grid-cols-5">
-          {/* List */}
-          <div className="flex flex-col gap-3 lg:col-span-2">
-            {records.map((r) => {
-              const band = indexBand(r.riskIndex);
-              const active = r.id === selectedId;
-              return (
-                <button
-                  key={r.id}
-                  onClick={() => select(r.id)}
-                  className={`rounded-card bg-surface p-4 text-left shadow-card transition hover:shadow-focus ${
-                    active ? "shadow-focus" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-semibold text-ink">
-                      {r.month ? formatMonth(r.month) : formatWhen(r.createdAt)}
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_BG_SOFT[band.tone]} ${TONE_TEXT[band.tone]}`}
-                    >
-                      {band.label}
-                    </span>
-                  </div>
-                  <div className="mt-2 flex items-center gap-4 text-xs text-muted">
-                    <span>
-                      Risk index{" "}
-                      <span className="font-semibold text-ink">{r.riskIndex}</span>
-                    </span>
-                    <span>
-                      Trouble risk{" "}
-                      <span className="font-semibold text-ink">
-                        {Math.round(r.probability * 100)}%
-                      </span>
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
+        <div className="flex flex-col gap-6">
+          {/* Toolbar — export the whole history as one Excel-openable table */}
+          <div className="no-print flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-muted">
+              {records.length} month{records.length === 1 ? "" : "s"} recorded
+            </p>
+            <button
+              onClick={() =>
+                downloadCsv("financial-health-history.csv", historyToCsv(records))
+              }
+              className="rounded-field bg-field px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-canvas"
+            >
+              ⬇ Export CSV (Excel)
+            </button>
           </div>
 
-          {/* Detail */}
-          <div className="lg:col-span-3">
-            {!selectedId && (
-              <Card className="text-center text-sm text-muted">
-                Select an assessment to see its full details.
-              </Card>
-            )}
-            {selectedId && detailLoading && (
-              <Card className="text-center text-sm text-muted">Loading…</Card>
-            )}
-            {detail && !detailLoading && (
-              <Detail
-                key={detail.id}
-                record={detail}
-                onDelete={() => remove(detail.id)}
-              />
-            )}
+          {/* Records table — click a row to open its full report below */}
+          <div
+            className={`overflow-x-auto rounded-card bg-surface shadow-card ${
+              selectedId ? "no-print" : ""
+            }`}
+          >
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="text-xs uppercase tracking-wide text-muted">
+                  <th className="px-4 py-3 font-semibold">Month</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 text-right font-semibold">Risk index</th>
+                  <th className="px-4 py-3 text-right font-semibold">Trouble risk</th>
+                  <th className="px-4 py-3" aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {records.map((r) => {
+                  const band = indexBand(r.riskIndex);
+                  const active = r.id === selectedId;
+                  return (
+                    <tr
+                      key={r.id}
+                      onClick={() => select(r.id)}
+                      className={`cursor-pointer border-t border-canvas transition hover:bg-field ${
+                        active ? "bg-field" : ""
+                      }`}
+                    >
+                      <td className="px-4 py-3 font-semibold text-ink">
+                        {r.month ? formatMonth(r.month) : formatWhen(r.createdAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${TONE_BG_SOFT[band.tone]} ${TONE_TEXT[band.tone]}`}
+                        >
+                          {band.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right font-semibold text-ink">
+                        {r.riskIndex}
+                      </td>
+                      <td className="px-4 py-3 text-right text-ink">
+                        {Math.round(r.probability * 100)}%
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs font-semibold text-brand">
+                          {active ? "Viewing" : "View →"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
+
+          {/* Detail — the selected month's full, printable report */}
+          {selectedId && detailLoading && (
+            <Card className="text-center text-sm text-muted">Loading…</Card>
+          )}
+          {detail && !detailLoading && (
+            <Detail
+              key={detail.id}
+              record={detail}
+              onDelete={() => remove(detail.id)}
+            />
+          )}
         </div>
       )}
     </main>
@@ -186,6 +213,7 @@ function Detail({
   const { result, inputs, figures, riskIndex: idx, aiFlags } = record;
   const band = indexBand(idx);
   const providedFields = FIELDS.filter((f) => inputs[f.key] !== undefined);
+  const reportRef = useRef<HTMLDivElement>(null);
 
   // Continue the saved advisor conversation. Replies + suggestions are
   // persisted straight back onto this record so the thread stays up to date.
@@ -207,12 +235,26 @@ function Detail({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const monthLabel =
+    record.assessedOn ?? (record.month ? formatMonth(record.month) : formatWhen(record.createdAt));
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold">
-          {record.assessedOn ?? formatWhen(record.createdAt)}
-        </h2>
+    <div ref={reportRef} className="flex flex-col gap-4">
+      <ReportHeader
+        title="Financial Health Report"
+        monthLabel={monthLabel}
+        onExportCsv={() =>
+          downloadCsv(`financial-health-report-${recordSlug(record)}.csv`, recordToCsv(record))
+        }
+        onExportPdf={() =>
+          exportElementToPdf(
+            reportRef.current,
+            `financial-health-report-${recordSlug(record)}.pdf`
+          )
+        }
+      />
+
+      <div className="no-print flex justify-end">
         <button
           onClick={onDelete}
           className="rounded-field px-3 py-1.5 text-xs font-semibold text-high transition hover:bg-high-bg"
@@ -294,16 +336,18 @@ function Detail({
       )}
 
       {/* Advisor conversation — resumable: pick up the thread where it left off */}
-      <AdvisorChat
-        messages={advisor.messages}
-        chatInput={advisor.chatInput}
-        setChatInput={advisor.setChatInput}
-        onSend={advisor.onSend}
-        onPick={advisor.pickQuestion}
-        suggestions={advisor.suggestions}
-        suggestLoading={advisor.suggestLoading}
-        chatting={advisor.chatting}
-      />
+      <div className="no-print">
+        <AdvisorChat
+          messages={advisor.messages}
+          chatInput={advisor.chatInput}
+          setChatInput={advisor.setChatInput}
+          onSend={advisor.onSend}
+          onPick={advisor.pickQuestion}
+          suggestions={advisor.suggestions}
+          suggestLoading={advisor.suggestLoading}
+          chatting={advisor.chatting}
+        />
+      </div>
     </div>
   );
 }

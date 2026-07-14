@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { listMonths } from "../../lib/db";
+import { getSession } from "../../lib/session";
 import { summarizeMonths } from "../../lib/monthly";
 
 export const runtime = "nodejs";
@@ -37,6 +38,9 @@ Return STRICT JSON only: {"questions":["...","...","..."]}`;
 const EMPTY = Response.json({ questions: [] });
 
 export async function POST(req: Request) {
+  const session = await getSession();
+  if (!session) return Response.json({ error: "Not signed in." }, { status: 401 });
+
   if (!process.env.GROQ_API_KEY) return EMPTY;
 
   const { inputs, result, riskIndex, messages = [] } = await req.json();
@@ -58,7 +62,7 @@ export async function POST(req: Request) {
 
   let history = "";
   try {
-    history = summarizeMonths(listMonths());
+    history = summarizeMonths(listMonths(session.userId));
   } catch {
     /* no history layer — fall back to the single snapshot */
   }

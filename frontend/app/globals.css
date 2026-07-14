@@ -17,3 +17,73 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* ---- Printable / downloadable reports -------------------------------------
+ * A print-optimised layout drives both "Print" and "Save as PDF" (the browser's
+ * print dialog does both). Interactive chrome (nav, buttons, advisor chat) is
+ * marked `.no-print`; a report letterhead marked `.print-only` appears only on
+ * paper. */
+.print-only {
+  display: none;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+
+  body {
+    background: #fff;
+    /* Keep status colours/pills in the printout */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Shadows are the app's separators on screen; on paper they muddy the page. */
+  .shadow-card,
+  .shadow-soft,
+  .shadow-focus {
+    box-shadow: none !important;
+  }
+
+  /* Don't split a card across a page break. */
+  section,
+  .rounded-card {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 16mm;
+  }
+
+  .report-letterhead {
+    margin-bottom: 18px;
+  }
+  .report-letterhead .brand {
+    color: #3b5bdb;
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+  .report-letterhead h1 {
+    margin-top: 4px;
+    font-size: 22px;
+    font-weight: 800;
+    color: #1f2733;
+  }
+  .report-letterhead .meta {
+    margin-top: 2px;
+    font-size: 12px;
+    color: #6b7685;
+  }
+}

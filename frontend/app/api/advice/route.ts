@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { listMonths } from "../../lib/db";
+import { getSession } from "../../lib/session";
 import { summarizeMonths } from "../../lib/monthly";
 import { FIELDS } from "../../fields";
 import {
@@ -32,6 +33,9 @@ Always finish with a clear, concrete next step. Keep follow-ups under 150 words.
 Be encouraging but honest. If asked something outside company finance, gently steer back.`;
 
 export async function POST(req: Request) {
+  const session = await getSession();
+  if (!session) return new Response("Not signed in.", { status: 401 });
+
   if (!process.env.GROQ_API_KEY) {
     return new Response(
       "Advisor is not configured. Add GROQ_API_KEY to .env.local to enable AI advice.",
@@ -57,7 +61,7 @@ export async function POST(req: Request) {
   // The owner's month-by-month history, so advice can follow the trend.
   let history = "";
   try {
-    history = summarizeMonths(listMonths());
+    history = summarizeMonths(listMonths(session.userId));
   } catch {
     /* no history layer available — advise from the snapshot only */
   }

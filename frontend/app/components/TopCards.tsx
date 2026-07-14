@@ -44,8 +44,9 @@ export function TopCards({
   assessedOn: string;
 }) {
   const pct = Math.round(result.probability * 100);
+  const confidencePct = Math.round((result.confidence ?? 0) * 100);
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
       <Stat
         label="Health Score"
         value={`${healthScore}`}
@@ -59,6 +60,11 @@ export function TopCards({
         tone={band.tone}
       />
       <Stat label="Status" value={band.label} tone={band.tone} />
+      <Stat
+        label="Model Confidence"
+        value={`${confidencePct}%`}
+        sub="certainty in this prediction"
+      />
       <Stat label="Last Assessment" value={assessedOn} />
     </div>
   );

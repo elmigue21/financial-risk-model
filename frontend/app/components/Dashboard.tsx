@@ -22,6 +22,7 @@ import { CriticalIssues, CriticalItem } from "./CriticalIssues";
 import { RecommendedActions } from "./RecommendedActions";
 import { InterpretationTable } from "./InterpretationTable";
 import { TrendsSection } from "./TrendsSection";
+import { ReportHeader } from "./ReportHeader";
 import { Card } from "./ui";
 import type { HistorySummary } from "../lib/history";
 
@@ -34,6 +35,9 @@ export function Dashboard({
   assessedOn,
   history,
   chat,
+  onExportCsv,
+  onExportPdf,
+  containerRef,
 }: {
   result: PredictResult;
   inputs: Record<string, number>;
@@ -41,6 +45,9 @@ export function Dashboard({
   assessedOn: string;
   history: HistorySummary[];
   chat: React.ReactNode;
+  onExportCsv: () => void;
+  onExportPdf?: () => void;
+  containerRef?: React.Ref<HTMLDivElement>;
 }) {
   const index = riskIndex(result.probability);
   const score = healthScore(result.probability);
@@ -91,7 +98,14 @@ export function Dashboard({
         }));
 
   return (
-    <div className="flex flex-col gap-4">
+    <div ref={containerRef} className="flex flex-col gap-4">
+      <ReportHeader
+        title="Financial Health Report"
+        monthLabel={assessedOn}
+        onExportCsv={onExportCsv}
+        onExportPdf={onExportPdf}
+      />
+
       <TopCards
         result={result}
         healthScore={score}
@@ -123,7 +137,7 @@ export function Dashboard({
 
       <InterpretationTable rows={rows} />
 
-      {chat}
+      <div className="no-print">{chat}</div>
     </div>
   );
 }

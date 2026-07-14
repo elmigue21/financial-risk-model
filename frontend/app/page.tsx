@@ -8,6 +8,8 @@ import { AiFlag } from "./lib/insights";
 import type { HistoryRecord, HistorySummary, UpdateHistoryInput } from "./lib/history";
 import { formatMonth } from "./lib/monthly";
 import { useAdvisor } from "./lib/useAdvisor";
+import { downloadCsv, recordToCsv, recordSlug } from "./lib/report";
+import { exportElementToPdf } from "./lib/pdf";
 import { Dashboard } from "./components/Dashboard";
 import { AdvisorChat } from "./components/AdvisorChat";
 
@@ -20,6 +22,8 @@ export default function Home() {
 
   // Id of the loaded month, reused to patch in AI data as it streams in.
   const historyIdRef = useRef<number | null>(null);
+  // The report DOM, captured by the PDF exporter.
+  const reportRef = useRef<HTMLDivElement>(null);
 
   /** Fire-and-forget patch of the current record with async AI data. */
   function patchHistory(patch: UpdateHistoryInput) {
@@ -35,6 +39,21 @@ export default function Home() {
   }
 
   const advisor = useAdvisor(patchHistory);
+
+  /** Download the current month's assessment as an Excel-openable CSV. */
+  function exportCsv() {
+    if (!record) return;
+    downloadCsv(`financial-health-report-${recordSlug(record)}.csv`, recordToCsv(record));
+  }
+
+  /** Download the current month's report as a real PDF file. */
+  function exportPdf() {
+    if (!record) return;
+    exportElementToPdf(
+      reportRef.current,
+      `financial-health-report-${recordSlug(record)}.pdf`
+    );
+  }
 
   useEffect(() => {
     loadLatest();
@@ -107,7 +126,7 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8">
-      <header className="text-center">
+      <header className="no-print text-center">
         <h1 className="text-2xl font-bold">Financial Health Dashboard</h1>
         <p className="mt-1 text-sm text-muted">
           Your latest monthly assessment, explained — with an AI advisor that knows your
@@ -149,6 +168,9 @@ export default function Home() {
           aiFlags={aiFlags}
           assessedOn={record.assessedOn ?? (record.month ? formatMonth(record.month) : "—")}
           history={history}
+          onExportCsv={exportCsv}
+          onExportPdf={exportPdf}
+          containerRef={reportRef}
           chat={
             <AdvisorChat
               messages={advisor.messages}
