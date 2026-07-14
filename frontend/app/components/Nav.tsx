@@ -46,7 +46,9 @@ export function Nav({ userName }: { userName: string | null }) {
   return (
     <nav className="no-print bg-surface shadow-soft">
       <div className="mx-auto flex max-w-6xl items-center gap-1 px-4">
-        <span className="mr-4 py-4 text-sm font-bold text-brand">Financial Health Check</span>
+        <Link href="/" className="mr-4 flex items-center py-3">
+          <img src="/logo.png" alt="Financial Health Check" className="h-8 w-auto" />
+        </Link>
         {TABS.map((tab) => {
           const active =
             tab.href === "/" ? pathname === "/" : pathname.startsWith(tab.href);

@@ -23,9 +23,11 @@ export function AuthShell({
     <main className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-4 py-10">
       <div className="rounded-card bg-surface p-8 shadow-card">
         <header className="mb-6 text-center">
-          <p className="text-xs font-bold uppercase tracking-wide text-brand">
-            Financial Health Check
-          </p>
+          <img
+            src="/logo.png"
+            alt="Financial Health Check"
+            className="mx-auto mb-3 h-12 w-auto"
+          />
           <h1 className="mt-1 text-2xl font-bold">{title}</h1>
           <p className="mt-1 text-sm text-muted">{subtitle}</p>
         </header>
