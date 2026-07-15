@@ -1,0 +1,235 @@
+{\rtf1\ansi\ansicpg1252\deff0
+{\fonttbl{\f0\fnil Calibri;}}
+\f0\fs24
+{\b Financial Health Check: Small-Business Risk Assessment Platform with AI Advisor}\par
+\par
+{\b USER MANUAL}\par
+\par
+For the Partial Fulfillment of the Requirements of Capstone Project\par
+\par
+[Author Names]\par
+\par
+[Month Year]\par
+\par
+{\b TABLE OF CONTENTS}\par
+\par
+Getting Started\par
+\tab Introduction\par
+System Requirements\par
+\tab Software Requirements\par
+\tab Hardware Requirements\par
+Interface Requirements\par
+\tab External Hardware Requirements\par
+Installation and Setup Guide\par
+\tab Windows\par
+\tab Linux / macOS\par
+Deployment to Production\par
+\tab Setup and Configuration\par
+Financial Health Check Interface\par
+\tab Register\par
+\tab Sign In\par
+\tab Dashboard\par
+\tab Finance Status (Entering Monthly Finances)\par
+\tab AI Financial Advisor\par
+\tab History\par
+\tab Report Details and Export\par
+\tab Account\par
+Accessibility Features\par
+Expected Issues and Resolutions\par
+Existing Bugs and How to Resolve\par
+\tab Model Service Unreachable\par
+\tab Authentication Error\par
+\tab AI Advisor Disabled or Rate-Limited\par
+\tab Duplicate Month\par
+User Interface Overview\par
+\par
+{\b Getting Started}\par
+\par
+When you use Financial Health Check for the first time, there are a few things you're going to need to know before you begin.\par
+\par
+{\b Introduction}\par
+\par
+Welcome to Financial Health Check, a self-service platform designed for small-business owners to understand the financial health of their company in plain English. Our goal is to take the monthly numbers you already track - revenue, expenses, assets, liabilities - and turn them into a clear risk assessment: Low, Medium, or High risk.\par
+\par
+Rather than reading dense spreadsheets or hiring an analyst to interpret financial ratios, business owners can enter their figures and immediately see a color-coded health score, a breakdown of the ratios driving their risk, and the specific factors pushing that risk up or down. An AI Financial Advisor then explains what the result means and answers follow-up questions in a live chat, taking your month-over-month trend into account rather than just a single snapshot.\par
+\par
+The risk assessment comes from a trained machine-learning model (logistic regression), so the score is grounded in real historical default data rather than arbitrary rules. Because the model is linear, the platform can show exactly how much each ratio contributed to your score - a genuine explanation, not a guess.\par
+\par
+{\b System Requirements}\par
+\par
+{\b Software Requirements}\par
+\par
+- Node.js 18 or later\par
+- npm (installed automatically with Node.js)\par
+- Python 3.10 or later, with pip\par
+- A modern web browser (Chrome, Edge, Firefox, or Safari)\par
+- A Groq API key (free) - only required for the AI advice and chat features; the risk score works without it\par
+\par
+{\b Hardware Requirements}\par
+\par
+- A computer or laptop running Windows 10/11, macOS, or Linux\par
+- Minimum 4 GB RAM\par
+- Minimum 2 GB free disk space\par
+\par
+{\b Interface Requirements}\par
+\par
+{\b External Hardware Requirements}\par
+\par
+Financial Health Check does not require any external hardware such as fingerprint scanners, card readers, or RFID devices. A standard keyboard, mouse (or trackpad), and display are sufficient.\par
+\par
+{\b Installation and Setup Guide}\par
+\par
+The application has two parts that must both be running at the same time: the model service - a Python/Flask server that scores your financials (port 5000); and the frontend - a Next.js web app that provides the interface (port 3000).\par
+\par
+{\b Windows}\par
+\par
+1. Install Git: Download and install Git from https://git-scm.com/download/win\par
+2. Install Node.js: Download and install the latest LTS version from https://nodejs.org/en/download\par
+3. Install Python: Download and install Python 3.10+ from https://www.python.org/downloads/. During install, check "Add Python to PATH."\par
+4. Clone the repository: git clone <repository-url>\par
+5. Navigate to the project directory: cd financial-risk\par
+6. Start the model service (first terminal): cd financial-risk-model, then pip install -r requirements.txt, then python app.py. The service runs at http://localhost:5000. Leave this terminal open. (If python is not found, try py app.py.)\par
+7. Install frontend dependencies (second terminal): cd frontend, then npm install\par
+8. Create your environment file. Copy .env.example to .env.local and fill in the required variables (see Setup and Configuration): copy .env.example .env.local\par
+9. Start the development server: npm run dev. Open http://localhost:3000 in your browser.\par
+\par
+{\b Linux / macOS}\par
+\par
+1. Install Git: sudo apt install git (Debian/Ubuntu)\par
+2. Install Node.js (18+): follow https://nodejs.org/en/download/package-manager/\par
+3. Install Python 3.10+ and pip (usually preinstalled; otherwise use your package manager).\par
+4. Clone and enter the repository: git clone <repository-url>, then cd financial-risk\par
+5. Start the model service (first terminal): cd financial-risk-model, then pip install -r requirements.txt, then python app.py\par
+6. Install and configure the frontend (second terminal): cd frontend, then npm install, then cp .env.example .env.local (then edit .env.local - see below)\par
+7. Start the development server: npm run dev. Open http://localhost:3000.\par
+\par
+{\b Deployment to Production}\par
+\par
+{\b Setup and Configuration}\par
+\par
+Environment variables - create frontend/.env.local with the following:\par
+\par
+AUTH_SECRET=<a-long-random-secret> (signs sign-in sessions; required)\par
+GROQ_API_KEY=<your-groq-api-key> (enables AI advice and chat; optional)\par
+MODEL_API_URL=http://localhost:5000 (where the Python model service runs)\par
+\par
+- Generate a secure AUTH_SECRET with: node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"\par
+- Get a free GROQ_API_KEY from https://console.groq.com/keys\par
+- .env.local is git-ignored - never commit your secrets.\par
+\par
+For production deployment:\par
+\par
+1. Build the frontend: cd frontend, then npm run build, then npm start\par
+2. Deploy the frontend to a Node host with a persistent filesystem so the SQLite database file (frontend/data/app.db) survives restarts.\par
+3. Deploy the Python model service (port 5000) and point MODEL_API_URL at it.\par
+4. Set AUTH_SECRET, GROQ_API_KEY, and MODEL_API_URL in the production environment - do not rely on .env.local in production.\par
+\par
+Note: The SQLite database is created automatically on first run; no separate database server is required.\par
+\par
+{\b Financial Health Check Interface}\par
+\par
+{\b Register}\par
+\par
+When you open the application for the first time, you'll be directed to sign in. To create a new account, click "Create an account." You'll be asked for your Full Name, Email Address, Password (must be at least 8 characters and include at least one letter and one number), and Confirm Password. Upon successful registration you are signed in automatically and taken to your dashboard.\par
+\par
+{\b Sign In}\par
+\par
+Existing users sign in with their registered Email Address and Password. Once authenticated, you're taken to the Financial Health Dashboard. You remain signed in for 7 days on that browser; after that you'll be asked to sign in again. You can Sign Out at any time from the top navigation bar or the Account page.\par
+\par
+{\b Dashboard}\par
+\par
+The dashboard shows your most recently recorded month's result. It includes:\par
+\par
+- Health Score / Risk Index (0-100) - an intuitive rating with a color-coded band: Low Risk (0-33) is a healthy financial position; Moderate Risk (34-66) means some areas need attention; High Risk (67-100) indicates elevated risk of financial trouble.\par
+- Model Confidence - how certain the model is in its prediction, shown as a percentage.\par
+- Ratio Breakdown - each financial ratio with a plain-English status (Healthy, Weak, Tight, Poor, or Critical).\par
+- Top Risk Factors - the specific ratios pushing your risk up, taken directly from the model's own math.\par
+- AI Insights - flags on inputs that look problematic (when the AI advisor is enabled).\par
+- AI Advisor Chat - an opening assessment plus a live conversation tailored to your numbers and trend.\par
+\par
+If you haven't recorded any months yet, the dashboard will prompt you to enter your first month's finances.\par
+\par
+{\b Finance Status (Entering Monthly Finances)}\par
+\par
+Open the Finance status tab to record a month. You enter the numbers you already have; the app computes the financial ratios for you.\par
+\par
+- Month Selection - choose the month you are recording.\par
+- This Month's Income: Revenue (all sales / money earned this month); Expenses (everything spent this month, including interest); Interest Paid (loan interest included in expenses; enter 0 if none).\par
+- End-of-Month Balances: Cash on Hand (money in the bank at month end); Total Assets (everything the business owns); Total Liabilities (everything the business owes); Owner's Equity (your stake - Assets should equal Liabilities + Equity).\par
+\par
+Live feedback: As you type, the form shows your net profit and a running balance check.\par
+\par
+Validation: Errors block saving - for example, negative values, a balance sheet that doesn't add up, or cash greater than total assets. Warnings flag likely typos - for example, no revenue recorded, or an unusually high profit margin.\par
+\par
+To submit: Complete the fields, correct any errors, and click "Save & score this month." The system computes your ratios, scores them with the trained model, and saves the month. Only one assessment is kept per month - to re-enter a month, delete it first from History.\par
+\par
+Note: The current model scores 4 of the 6 ratios - Return on Assets, Profit Margin, Interest Coverage, and Debt Ratio. The Current Ratio and Quick Ratio are collected and displayed but not scored by the current model; the interface clearly flags this.\par
+\par
+{\b AI Financial Advisor}\par
+\par
+The AI advisor turns your result into plain English and answers your questions.\par
+\par
+- Opening Assessment - a plain-English summary of what your result means, generated automatically when a month is scored.\par
+- Ask Questions - type a question, or tap one of the suggested questions the advisor proposes based on your conversation.\par
+- Trend-Aware Advice - the advisor reads your month-over-month history, not just the current snapshot.\par
+- Graceful Degradation - if no AI provider key is configured, scoring, history, and reports still work; the advisor simply stays disabled.\par
+\par
+{\b History}\par
+\par
+Open the History tab to browse every assessment you've run, newest first. Each entry summarizes the month, its risk level, and health score. Select any month to open its full report.\par
+\par
+{\b Report Details and Export}\par
+\par
+Opening a month shows its complete report: the figures you entered; computed ratios and their statuses; top risk factors; AI insights; and the saved advisor conversation, which you can continue where you left off.\par
+\par
+Export options: Export PDF - download a single report as a formatted PDF, generated by the app (no browser print dialog needed). Export CSV - download a single report, or your entire history, as an Excel-openable CSV file.\par
+\par
+{\b Account}\par
+\par
+Open the Account tab to manage your profile.\par
+\par
+- View Profile - see your full name, company name, and email address.\par
+- Update Profile - edit your details and save. Changing to an email already used by another account is rejected.\par
+- Change Password - enter your current password, then a new password (twice).\par
+- Confidentiality - you can only ever access your own assessments, reports, and account information.\par
+\par
+{\b Accessibility Features}\par
+\par
+Financial Health Check is designed to be readable and usable for a broad range of users:\par
+\par
+- Status by text, not color alone - every risk level and ratio status is labeled in words (Healthy, Weak, Tight, Poor, Critical) in addition to its color, so meaning is not lost for color-blind users.\par
+- Plain-English labels and hints - financial terms are explained in everyday language (for example, "Out of every $100 of sales, how much is actual profit?") directly beside each input.\par
+- Keyboard navigation - the sign-in, data-entry, and navigation controls are reachable and operable with the keyboard.\par
+- Responsive layout - the interface adapts to different screen and window sizes.\par
+- Printable / exportable reports - reports can be exported to PDF or CSV for use with external assistive tools, larger displays, or offline reading.\par
+\par
+{\b Expected Issues and Resolutions}\par
+\par
+Financial Health Check is a continuously evolving project. Known issues are documented in the project's issue tracker, and users are encouraged to report any problems they encounter so the development team can resolve them promptly.\par
+\par
+{\b Existing Bugs and How to Resolve}\par
+\par
+{\b Model Service Unreachable}\par
+\par
+If you see "Could not reach the model service" when scoring a month, the Python backend is not running. Open a terminal, start it with python app.py from the financial-risk-model directory, and confirm it responds at http://localhost:5000/health with \{"status":"ok"\}. Then retry.\par
+\par
+{\b Authentication Error}\par
+\par
+If you cannot sign in or register, first double-check your credentials, including the correct spelling of your email address and password. Ensure your password meets the requirements (at least 8 characters, with at least one letter and one number). If a registration is rejected, the email may already be in use by another account - sign in instead, or use a different email.\par
+\par
+{\b AI Advisor Disabled or Rate-Limited}\par
+\par
+If the advisor says it is "not configured," add GROQ_API_KEY to frontend/.env.local and restart npm run dev (the key is read at startup). If advice fails with a rate-limit / 413 error, you've hit the Groq free-tier token limit (8,000 tokens/minute). Wait a minute and retry.\par
+\par
+{\b Duplicate Month}\par
+\par
+Only one assessment is kept per month. If saving a month reports a duplicate (HTTP 409), that month already exists in your history. Open History, delete the existing entry for that month, and re-enter it.\par
+\par
+{\b User Interface Overview}\par
+\par
+For detailed screenshots of each page, refer to the accompanying screenshots or the live application at http://localhost:3000.\par
+\par
+The application is organized into four main tabs, always available from the top navigation bar once you are signed in: Dashboard - your latest month's risk assessment, ratios, and AI advisor chat; Finance status - enter and score a new month's financials; History - browse, open, and export past assessments; Account - view/update your profile and change your password.\par
+\par
+The sign-in and registration pages render their own full-screen layout without the navigation bar. Once authenticated, the navigation bar greets you by name and provides a Sign out control at all times.\par
+}

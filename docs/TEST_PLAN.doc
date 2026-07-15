@@ -1,0 +1,419 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>Test Plan</title><style>
+  body { font-family: Calibri, "Segoe UI", Arial, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.4; }
+  h1 { font-size: 20pt; font-weight: 700; color: #1f3864; }
+  h2 { font-size: 15pt; font-weight: 700; color: #1f3864; margin-top: 18pt; }
+  h3 { font-size: 12.5pt; font-weight: 700; color: #2e4a7d; margin-top: 12pt; }
+  ul, ol { margin: 4pt 0 8pt 0; } li { margin: 2pt 0; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 10pt; background: #f2f2f2; padding: 0 2pt; }
+  pre { font-family: Consolas, monospace; font-size: 9.5pt; background: #f5f5f5; border: 1px solid #dcdcdc; padding: 8pt; white-space: pre-wrap; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; width: 100%; } th, td { border: 1px solid #bfbfbf; padding: 4pt 8pt; vertical-align: top; }
+  th { background: #d9e1f2; } blockquote { color: #555; border-left: 3px solid #bfbfbf; padding-left: 10pt; margin-left: 0; }
+  hr { border: none; border-top: 1px solid #bfbfbf; }
+</style></head><body><h1>Test Plan — Functions Requiring Test Cases</h1>
+<p>This document identifies the functions and units of the Financial Health Check System
+that <strong>should have test cases written for them</strong>, and the scenarios each one needs to
+cover. It is a coverage map for planning, not the tests themselves.</p>
+<p><strong>Test-type legend</strong></p>
+<ul>
+<li><strong>U (Unit)</strong> — pure function, no I/O; fastest and highest value.</li>
+<li><strong>I (Integration)</strong> — touches the database, an API route, or the model service.</li>
+<li><strong>E (End-to-end)</strong> — driven through the UI in a browser.</li>
+</ul>
+<p><strong>Suggested priority:</strong> start with the pure logic (financial calculations, validation,
+scoring) and the security/ownership units — they carry the most risk and are the cheapest
+to test. UI/E2E last.</p>
+<hr>
+<h2>1. Financial Calculations (Priority: High · Unit)</h2>
+<p><strong>File:</strong> <code>frontend/app/lib/monthly.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>netProfit(f)</code></td>
+<td>revenue &gt; expenses (positive); expenses &gt; revenue (negative); equal (zero)</td>
+</tr>
+<tr>
+<td><code>operatingProfit(f)</code></td>
+<td>interest added back correctly; interest = 0</td>
+</tr>
+<tr>
+<td><code>computeRatios(f)</code></td>
+<td>correct ROA, profit margin, interest coverage, debt ratio; <strong>interest = 0 → coverage caps at 999</strong>; assets = 0 → ROA/debt omitted; revenue = 0 → margin omitted; rounding to 2 decimals; current/quick ratios never produced</td>
+</tr>
+</tbody></table>
+<p><strong>File:</strong> <code>frontend/app/lib/scoring.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>riskIndex(p)</code></td>
+<td>below lowest anchor → 5; above highest → 95; exact anchor values (0.017/0.023/0.038/0.056); interpolation midpoint; monotonic (higher p → higher index)</td>
+</tr>
+<tr>
+<td><code>healthScore(p)</code></td>
+<td>equals <code>100 − riskIndex(p)</code></td>
+</tr>
+<tr>
+<td><code>indexBand(index)</code></td>
+<td>boundaries: 33 → Low, 34 → Moderate, 66 → Moderate, 67 → High; correct tone per band</td>
+</tr>
+<tr>
+<td><code>classifyRatio(field, value)</code></td>
+<td>higher-is-better vs lower-is-better direction; value on each threshold boundary; <code>undefined</code>/<code>NaN</code> → &quot;No data&quot; + missing=true</td>
+</tr>
+<tr>
+<td><code>formatValue(field, value)</code></td>
+<td><code>%</code> vs <code>×</code> units; integer vs decimal; undefined → &quot;—&quot;</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>2. Input Validation (Priority: High · Unit)</h2>
+<p><strong>File:</strong> <code>frontend/app/lib/monthly.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>validateFigures(f)</code></td>
+<td>negative revenue/expenses/interest/cash/assets/liabilities → error; <strong>balance sheet mismatch</strong> (assets ≠ liabilities + equity beyond tolerance) → error; within 0.5% tolerance → no error; cash &gt; assets → error; interest &gt; expenses → error; negative equity allowed (insolvency); warnings: assets = 0, revenue = 0, margin &gt; 90%, expenses = 0, high interest-to-debt</td>
+</tr>
+<tr>
+<td><code>hasBlockingErrors(issues)</code></td>
+<td>true when any error present; false for warnings-only; false for empty</td>
+</tr>
+</tbody></table>
+<p><strong>File:</strong> <code>frontend/app/lib/user.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>isValidEmail(e)</code></td>
+<td>valid address; missing <code>@</code>; missing domain/TLD; spaces</td>
+</tr>
+<tr>
+<td><code>normalizeEmail(e)</code></td>
+<td>trims and lower-cases; idempotent</td>
+</tr>
+<tr>
+<td><code>passwordProblem(pw)</code></td>
+<td>&lt; 8 chars → error; no letter → error; no number → error; valid → null</td>
+</tr>
+<tr>
+<td><code>validateRegistration(input)</code></td>
+<td>each missing field flagged; invalid email; weak password; mismatched confirm; all-valid → empty list</td>
+</tr>
+<tr>
+<td><code>validateProfile(input)</code></td>
+<td>missing name/email; invalid email; valid → empty (note: no company field anymore)</td>
+</tr>
+<tr>
+<td><code>validatePasswordChange(input)</code></td>
+<td>missing current; weak new; mismatched confirm; valid → empty</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>3. Authentication &amp; Security (Priority: High · Unit + Integration)</h2>
+<p><strong>File:</strong> <code>frontend/app/lib/jwt.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>signSessionToken(payload)</code> / <code>verifySessionToken(token)</code></td>
+<td>round-trip returns same <code>userId</code>/<code>email</code>/<code>name</code>; tampered token → null; expired token → null; wrong secret → null; malformed/empty string → null</td>
+</tr>
+</tbody></table>
+<p><strong>File:</strong> <code>frontend/app/lib/password.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>hashPassword(pw)</code></td>
+<td>output ≠ plaintext; two hashes of same input differ (salt)</td>
+</tr>
+<tr>
+<td><code>verifyPassword(pw, hash)</code></td>
+<td>correct password → true; wrong password → false</td>
+</tr>
+</tbody></table>
+<p><strong>File:</strong> <code>frontend/middleware.ts</code> (Integration)</p>
+<table>
+<thead>
+<tr>
+<th>Behavior</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Route gate</td>
+<td>unauthenticated page request → 307 redirect to <code>/login</code> with <code>next</code>; unauthenticated <code>/api/*</code> → 401 JSON; authenticated user hitting <code>/login</code> or <code>/register</code> → redirect to <code>/</code>; <code>/api/auth/*</code> always reachable</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>4. Data Layer &amp; Ownership (Priority: High · Integration, temp SQLite)</h2>
+<p><strong>File:</strong> <code>frontend/app/lib/db.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>createUser(data)</code></td>
+<td>inserts and returns user without hash; <strong>duplicate email throws</strong> (unique index); email stored as given (normalized by caller)</td>
+</tr>
+<tr>
+<td><code>getUserByEmailWithHash(email)</code></td>
+<td>returns user + hash; unknown email → null</td>
+</tr>
+<tr>
+<td><code>getUserById(id)</code></td>
+<td>found; not found → null</td>
+</tr>
+<tr>
+<td><code>getUserHash(id)</code></td>
+<td>returns hash; unknown → null</td>
+</tr>
+<tr>
+<td><code>emailTakenByOther(email, id)</code></td>
+<td>true when another user has it; false for same user; false when free</td>
+</tr>
+<tr>
+<td><code>updateUserProfile(id, data)</code></td>
+<td>updates name/email; returns updated user</td>
+</tr>
+<tr>
+<td><code>updateUserPassword(id, hash)</code></td>
+<td>replaces hash; returns true/false on match</td>
+</tr>
+<tr>
+<td><code>createPrediction(userId, data)</code></td>
+<td>inserts row owned by user; returns id</td>
+</tr>
+<tr>
+<td><code>findPredictionByMonth(userId, month)</code></td>
+<td>returns id for that user&#39;s month; null otherwise; <strong>does not match another user&#39;s same month</strong></td>
+</tr>
+<tr>
+<td><code>listPredictions(userId)</code></td>
+<td>returns only that user&#39;s rows, newest first</td>
+</tr>
+<tr>
+<td><code>getPrediction(userId, id)</code></td>
+<td>owner gets row; <strong>non-owner → null</strong></td>
+</tr>
+<tr>
+<td><code>updatePrediction(userId, id, patch)</code></td>
+<td>owner updates; <strong>non-owner change count 0</strong>; partial patch (flags only / messages only / suggestions only)</td>
+</tr>
+<tr>
+<td><code>deletePrediction(userId, id)</code></td>
+<td>owner deletes → true; <strong>non-owner → false</strong></td>
+</tr>
+<tr>
+<td><code>listMonths(userId)</code></td>
+<td>only that user&#39;s months with figures, oldest first</td>
+</tr>
+<tr>
+<td>Schema/migration</td>
+<td>idempotent on repeated load; per-user month uniqueness (<code>user_id, month</code>); legacy <code>company_name</code> column dropped</td>
+</tr>
+</tbody></table>
+<blockquote>
+<p><strong>Confidentiality (NFR-AUTH-002)</strong> is the critical theme here: every read/write must be
+provably scoped to the owning <code>userId</code>. Cross-user access tests are the most important.</p>
+</blockquote>
+<hr>
+<h2>5. API Routes (Priority: Medium-High · Integration)</h2>
+<table>
+<thead>
+<tr>
+<th>Endpoint</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>POST /api/auth/register</code></td>
+<td>valid → 201 + Set-Cookie; missing field → 400; mismatched passwords → 400; duplicate email (case-insensitive) → 409</td>
+</tr>
+<tr>
+<td><code>POST /api/auth/login</code></td>
+<td>valid → 200 + cookie; wrong password → 401 generic; unknown email → <strong>same</strong> 401 generic; missing input → 400</td>
+</tr>
+<tr>
+<td><code>POST /api/auth/logout</code></td>
+<td>200 + cookie cleared (Max-Age 0)</td>
+</tr>
+<tr>
+<td><code>GET /api/profile</code></td>
+<td>authenticated → user; unauthenticated → 401</td>
+</tr>
+<tr>
+<td><code>PATCH /api/profile</code></td>
+<td>valid update → 200 + refreshed cookie; invalid → 400; email taken by other → 409</td>
+</tr>
+<tr>
+<td><code>PATCH /api/profile/password</code></td>
+<td>wrong current → 400; valid → 200; then login works with new password</td>
+</tr>
+<tr>
+<td><code>GET /api/history</code></td>
+<td>returns only caller&#39;s records; unauthenticated → 401</td>
+</tr>
+<tr>
+<td><code>POST /api/history</code></td>
+<td>creates for caller; missing result → 400; duplicate month → 409</td>
+</tr>
+<tr>
+<td><code>GET/PATCH/DELETE /api/history/[id]</code></td>
+<td>owner ok; <strong>other user → 404</strong>; bad id → 400; unauthenticated → 401</td>
+</tr>
+<tr>
+<td><code>POST /api/predict</code></td>
+<td>forwards to model; model down → 502</td>
+</tr>
+<tr>
+<td><code>POST /api/advice</code>, <code>/api/flag</code>, <code>/api/suggestions</code></td>
+<td>unauthenticated → 401; no <code>GROQ_API_KEY</code> → graceful empty/disabled (HTTP 200)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>6. Model Service (Priority: Medium-High · Unit, pytest)</h2>
+<p><strong>File:</strong> <code>financial-risk-model/app.py</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>binned_runscoring(df, col)</code></td>
+<td>value falls in correct bin → correct rate; <code>NM</code>/missing → &quot;Missing&quot; bin rate; out-of-range value</td>
+</tr>
+<tr>
+<td><code>predict(inputs)</code></td>
+<td>returns <code>probability</code>, <code>risk_level</code>, <code>confidence</code>, <code>contributions</code>; hardcoded defaults applied (fixed asset turnover = 1.0, debt/ebitda = 3.0); <strong>risk-level thresholds</strong> (&lt; 0.023 LOW, 0.023–0.038 MEDIUM, ≥ 0.038 HIGH) at the boundaries; only the 4 user features flagged <code>is_scored_driver = true</code>; missing inputs handled</td>
+</tr>
+<tr>
+<td><code>POST /predict</code> route</td>
+<td>blank/invalid values coerced to None; valid JSON in → JSON out</td>
+</tr>
+<tr>
+<td><code>GET /health</code></td>
+<td>returns <code>{&quot;status&quot;:&quot;ok&quot;}</code></td>
+</tr>
+</tbody></table>
+<hr>
+<h2>7. Reporting &amp; Export (Priority: Medium · Unit + E2E)</h2>
+<p><strong>File:</strong> <code>frontend/app/lib/report.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>recordToCsv(record)</code></td>
+<td>includes figures, ratios, risk outputs; correct rows for a full record; handles null figures</td>
+</tr>
+<tr>
+<td><code>historyToCsv(records)</code></td>
+<td>header + one row per record; empty list</td>
+</tr>
+<tr>
+<td><code>recordSlug(record)</code></td>
+<td>filename-safe slug from month/date</td>
+</tr>
+<tr>
+<td><code>downloadCsv(name, csv)</code></td>
+<td>triggers a download with the given filename (E2E/DOM)</td>
+</tr>
+</tbody></table>
+<p><strong>File:</strong> <code>frontend/app/lib/pdf.ts</code></p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>exportElementToPdf(el, filename)</code></td>
+<td>null element → no-op; produces a non-empty PDF; hides <code>.no-print</code> and shows <code>.print-only</code> in the export (best verified E2E)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>8. UI / End-to-End (Priority: Lower · E2E)</h2>
+<table>
+<thead>
+<tr>
+<th>Flow / Component</th>
+<th>Test cases to cover</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Register → Dashboard</td>
+<td>new account lands on dashboard signed in</td>
+</tr>
+<tr>
+<td>Login / Logout</td>
+<td>valid login redirects; <strong>sign-out then sign-in — button is not stuck on &quot;Signing out…&quot;</strong> (<code>Nav</code> reset)</td>
+</tr>
+<tr>
+<td>Route protection</td>
+<td>visiting <code>/</code>, <code>/status</code>, <code>/history</code>, <code>/profile</code> while signed out → redirected to <code>/login</code></td>
+</tr>
+<tr>
+<td>Finance status form</td>
+<td>errors block &quot;Save &amp; score&quot;; warnings do not; balance check reflects entries</td>
+</tr>
+<tr>
+<td>Dashboard</td>
+<td>renders health score, risk index, status, <strong>model confidence %</strong>, ratio grid</td>
+</tr>
+<tr>
+<td>History</td>
+<td>list populated; row opens full report; delete works; Export PDF / Export CSV download</td>
+</tr>
+<tr>
+<td>Confidentiality</td>
+<td>user B cannot see user A&#39;s history (via UI)</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>Coverage summary (what to prioritize)</h2>
+<ol>
+<li><strong>Financial math</strong> (<code>computeRatios</code>, <code>riskIndex</code>, <code>classifyRatio</code>) — core correctness.</li>
+<li><strong>Validation</strong> (<code>validateFigures</code>, <code>validateRegistration</code>, <code>passwordProblem</code>).</li>
+<li><strong>Security</strong> (<code>jwt</code>, <code>password</code>, <code>middleware</code>) and <strong>ownership scoping</strong> in <code>db.ts</code>.</li>
+<li><strong>API contract</strong> (status codes for auth, history, profile).</li>
+<li><strong>Model service</strong> (<code>predict</code> thresholds and contributions).</li>
+<li><strong>Reporting/export</strong> and <strong>UI/E2E</strong> flows.</li>
+</ol>
+</body></html>

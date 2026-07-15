@@ -8,6 +8,7 @@ accepts arbitrarily long input untruncated, and a login only succeeds when the
 username exactly matches a known account. Those two cases therefore *document*
 this behavior rather than asserting an arbitrary numeric limit.
 """
+import pytest
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -198,3 +199,24 @@ def test_lg_021_error_message_display(driver):
     error = driver.find_element(*lp.ERROR)
     assert error.is_displayed()
     assert lp.error_icon_count(driver) >= 1
+
+
+# LG-022 -- Every SauceDemo account logs in with the expected outcome.
+# Runs once per accepted username: locked_out_user must be blocked with the
+# lockout error and kept on the login page; every other account must reach the
+# Inventory Module. (performance_glitch_user lands there after a deliberate
+# server-side delay, so this case allows a longer wait.)
+@pytest.mark.parametrize("username", lp.ALL_USERS)
+def test_lg_022_login_each_user(driver, username):
+    lp.open_login(driver)
+    lp.enter_username(driver, username)
+    lp.enter_password(driver, lp.VALID_PASS)
+    lp.click_login(driver)
+
+    if username == lp.LOCKED_OUT_USER:
+        assert lp.error_text(driver) == lp.ERR_LOCKED_OUT
+        assert lp.error_icon_count(driver) >= 1
+        assert not driver.current_url.endswith("/inventory.html")
+    else:
+        WebDriverWait(driver, 20).until(EC.url_contains("inventory.html"))
+        assert driver.current_url.endswith("/inventory.html")

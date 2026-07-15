@@ -1,0 +1,233 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>System Architecture and DFD</title><style>
+  body { font-family: Calibri, "Segoe UI", Arial, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.4; }
+  h1 { font-size: 20pt; font-weight: 700; color: #1f3864; }
+  h2 { font-size: 15pt; font-weight: 700; color: #1f3864; margin-top: 18pt; }
+  h3 { font-size: 12.5pt; font-weight: 700; color: #2e4a7d; margin-top: 12pt; }
+  ul, ol { margin: 4pt 0 8pt 0; } li { margin: 2pt 0; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 10pt; background: #f2f2f2; padding: 0 2pt; }
+  pre { font-family: Consolas, "Courier New", monospace; font-size: 8.5pt; background: #f5f5f5;
+        border: 1px solid #dcdcdc; padding: 8pt; white-space: pre; overflow-x: auto; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; } th, td { border: 1px solid #bfbfbf; padding: 4pt 8pt; }
+  th { background: #d9e1f2; } blockquote { color: #555; border-left: 3px solid #bfbfbf; padding-left: 10pt; margin-left: 0; }
+  hr { border: none; border-top: 1px solid #bfbfbf; }
+</style></head><body><h1>System Architecture and Data Flow Diagram</h1>
+<h2>System Architecture</h2>
+<h3>Overview</h3>
+<p>The Financial Health Check System follows a <strong>three-tier, client–server architecture</strong>
+with clearly separated responsibilities. Each tier does one job and communicates with the
+others over well-defined interfaces (HTTP/JSON), which keeps the machine-learning model,
+the application logic, and the user interface independent and replaceable.</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Technology</th>
+<th>Port</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Presentation &amp; Application</strong></td>
+<td>Next.js (App Router, TypeScript) + Tailwind CSS</td>
+<td>3000</td>
+<td>User interface, authentication, persistence, and orchestration of the model and AI calls</td>
+</tr>
+<tr>
+<td><strong>Model Service</strong></td>
+<td>Python / Flask + scikit-learn</td>
+<td>5000</td>
+<td>Stateless risk scoring from a trained logistic-regression model</td>
+</tr>
+<tr>
+<td><strong>AI Provider</strong></td>
+<td>Groq LLM (external API)</td>
+<td>—</td>
+<td>Advice, input flags, and follow-up questions</td>
+</tr>
+<tr>
+<td><strong>Data Store</strong></td>
+<td>SQLite (<code>app.db</code>)</td>
+<td>—</td>
+<td>Persists user accounts and monthly assessment sessions</td>
+</tr>
+</tbody></table>
+<h3>Architecture Diagram</h3>
+<pre><code>          ┌───────────────────────────────────────────────────────────┐
+          │                     Business Owner                         │
+          │                    (Web Browser, UI)                       │
+          └───────────────────────────┬───────────────────────────────┘
+                                       │  HTTPS (figures, chat, login)
+                                       ▼
+   ┌─────────────────────────────────────────────────────────────────────────┐
+   │                FRONTEND — Next.js Application (port 3000)                  │
+   │                                                                           │
+   │   • Authentication (session cookie, route protection)                     │
+   │   • Data-entry, dashboard, history and profile pages                      │
+   │   • API routes: /api/auth, /api/profile, /api/predict, /api/history,      │
+   │     /api/advice, /api/flag, /api/suggestions                              │
+   └───────┬───────────────────────────┬───────────────────────────┬──────────┘
+           │ JSON (ratios)             │ JSON (prompt + summary)    │ SQL
+           ▼                           ▼                            ▼
+ ┌────────────────────┐    ┌────────────────────────┐   ┌────────────────────┐
+ │  MODEL SERVICE     │    │   AI PROVIDER (Groq)    │   │  DATA STORE         │
+ │  Flask (port 5000) │    │   External LLM API      │   │  SQLite (app.db)    │
+ │  Logistic model    │    │   Advice / flags / Qs   │   │  users, predictions │
+ └────────────────────┘    └────────────────────────┘   └────────────────────┘
+</code></pre>
+<h3>Component Responsibilities</h3>
+<ul>
+<li><strong>Frontend (Next.js):</strong> Renders all pages, authenticates users with a signed session
+cookie, enforces access control through middleware, and owns all persistence. It is the
+only layer that sees the complete session — inputs, model result, and AI output — for
+the signed-in user.</li>
+<li><strong>Model Service (Flask):</strong> Receives financial ratios and returns a probability, a risk
+level, a confidence value, and per-feature risk contributions. It is <strong>stateless</strong> — it
+holds no data between requests.</li>
+<li><strong>AI Provider (Groq):</strong> Generates plain-English advice (streamed), input flags, and
+suggested follow-up questions from a dashboard summary supplied by the frontend.</li>
+<li><strong>Data Store (SQLite):</strong> Stores user accounts (<code>users</code>) and one assessment per month per
+user (<code>predictions</code>).</li>
+</ul>
+<h3>Key Design Decisions</h3>
+<ul>
+<li><strong>The frontend never runs the model itself.</strong> It proxies to the Python service so the
+score always comes from the real trained model.</li>
+<li><strong>The model service is stateless; the frontend owns persistence.</strong> This keeps the model
+simple to deploy and scale, and centralizes all data ownership in one tier.</li>
+<li><strong>Graceful degradation.</strong> Without an AI provider key, the AI features return
+empty/disabled responses (HTTP 200, not errors) and deterministic rules act as the
+fallback, so scoring and history keep working.</li>
+<li><strong>Self-contained authentication.</strong> A signed-cookie session (JWT) with hashed passwords,
+backed by the same SQLite store — no external authentication service is required.</li>
+<li><strong>Confidentiality by design.</strong> Every data query is scoped to the signed-in user, so no
+user can access another user&#39;s assessments or account.</li>
+</ul>
+<h3>Deployment View</h3>
+<ul>
+<li>The <strong>frontend</strong> is built (<code>npm run build</code>) and served as a Node.js process; it requires
+a persistent filesystem for the SQLite database file.</li>
+<li>The <strong>model service</strong> runs as a long-running Python process reachable at <code>MODEL_API_URL</code>.</li>
+<li>The <strong>AI provider</strong> is an external SaaS API reached over HTTPS using an API key.</li>
+</ul>
+<hr>
+<h2>Data Flow Diagram — Level 0 (Context Diagram)</h2>
+<h3>Purpose</h3>
+<p>The Level 0 (context) diagram shows the system as a <strong>single process</strong> and identifies the
+external entities it exchanges data with, plus the data store it maintains. It defines the
+system boundary and the major data flows crossing that boundary.</p>
+<blockquote>
+<p>At Level 0, the Python model service is treated as <strong>inside</strong> the system boundary (it is
+an internal component). It becomes a separate process only at Level 1.</p>
+</blockquote>
+<h3>External Entities</h3>
+<table>
+<thead>
+<tr>
+<th>Entity</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Business Owner</strong></td>
+<td>The end user. Registers and signs in, enters monthly figures, reads the dashboard, and chats with the AI advisor.</td>
+</tr>
+<tr>
+<td><strong>Groq LLM API</strong></td>
+<td>External AI provider that returns advice, input flags, and suggested questions.</td>
+</tr>
+</tbody></table>
+<h3>Data Store</h3>
+<table>
+<thead>
+<tr>
+<th>Store</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>D1: SQLite (<code>app.db</code>)</strong></td>
+<td>Persists user accounts and one scored assessment session per month per user (figures, model result, AI flags, advisor conversation, suggestions).</td>
+</tr>
+</tbody></table>
+<h3>Data Flows</h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>From → To</th>
+<th>Data</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>Business Owner → System</td>
+<td>Registration and sign-in credentials</td>
+</tr>
+<tr>
+<td>2</td>
+<td>System → Business Owner</td>
+<td>Authentication result / active session</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Business Owner → System</td>
+<td>Monthly financial figures, chat messages, month selection</td>
+</tr>
+<tr>
+<td>4</td>
+<td>System → Business Owner</td>
+<td>Risk level, health score, ratio statuses, AI advice (streamed), insights, reports</td>
+</tr>
+<tr>
+<td>5</td>
+<td>System → Groq LLM API</td>
+<td>Dashboard summary and prompt</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Groq LLM API → System</td>
+<td>Streamed advice, JSON input flags, JSON suggested questions</td>
+</tr>
+<tr>
+<td>7</td>
+<td>System ↔ Data Store (D1)</td>
+<td>Create / read / update / delete user accounts and assessment sessions</td>
+</tr>
+</tbody></table>
+<h3>Context Diagram</h3>
+<pre><code>        ┌──────────────────────┐                     ┌──────────────────────┐
+        │   Business Owner     │                     │     Groq LLM API     │
+        │  (External Entity)   │                     │  (External Entity)   │
+        └───────────┬──────────┘                     └───────────┬──────────┘
+                    │                                            │
+   (1) credentials, │                          (5) summary +    │  (6) advice,
+   (3) figures,     │   (2) session,           prompt           │  flags,
+   chat, month      │   (4) risk level,                         │  questions
+                    ▼   advice, reports                         ▼
+            ┌───────────────────────────────────────────────────────────┐
+            │                                                           │
+            │                          0                                │
+            │            FINANCIAL HEALTH CHECK SYSTEM                  │
+            │                                                           │
+            └───────────────────────────┬───────────────────────────────┘
+                                         │
+                        (7) read / write │  user accounts &amp;
+                                         │  assessment sessions
+                                         ▼
+                             ┌───────────────────────────┐
+                             │   D1 │ SQLite (app.db)      │
+                             └───────────────────────────┘
+</code></pre>
+<h3>Narrative</h3>
+<p>The <strong>Business Owner</strong> first sends registration or sign-in credentials (flow 1) and
+receives an authenticated session (flow 2). Once signed in, the owner submits monthly
+financial figures, chat messages, and a month selection (flow 3). The <strong>Financial Health
+Check System</strong> scores the figures, persists the session to the <strong>SQLite</strong> data store
+(flow 7), requests plain-English advice by sending a dashboard summary to the <strong>Groq LLM
+API</strong> (flow 5), and receives streamed advice, input flags, and suggested questions
+(flow 6). Finally, the system returns the risk level, health score, ratio statuses,
+AI advice, insights, and downloadable reports to the owner (flow 4). All stored data is
+scoped to the authenticated owner, so each user sees only their own information.</p>
+</body></html>

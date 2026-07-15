@@ -11,6 +11,20 @@ LOGIN_URL = "https://www.saucedemo.com/v1/"
 VALID_USER = "standard_user"
 VALID_PASS = "secret_sauce"
 
+# Every account SauceDemo accepts (all share VALID_PASS). ``locked_out_user`` is
+# a valid account that the app blocks with an error; the rest reach inventory
+# (problem_user / visual_user still land there, just with visual bugs, and
+# performance_glitch_user lands there after a deliberate delay).
+LOCKED_OUT_USER = "locked_out_user"
+ALL_USERS = [
+    "standard_user",
+    LOCKED_OUT_USER,
+    "problem_user",
+    "performance_glitch_user",
+    "error_user",
+    "visual_user",
+]
+
 USERNAME = (By.ID, "user-name")
 PASSWORD = (By.ID, "password")
 LOGIN_BUTTON = (By.ID, "login-button")
@@ -21,6 +35,7 @@ ERROR_ICON = (By.CSS_SELECTOR, ".error_icon")
 ERR_USERNAME_REQUIRED = "Epic sadface: Username is required"
 ERR_PASSWORD_REQUIRED = "Epic sadface: Password is required"
 ERR_NO_MATCH = "Epic sadface: Username and password do not match any user in this service"
+ERR_LOCKED_OUT = "Epic sadface: Sorry, this user has been locked out."
 
 
 def open_login(driver):

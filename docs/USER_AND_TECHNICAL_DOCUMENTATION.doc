@@ -1,0 +1,226 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>User and Technical Documentation</title>
+<style>
+  body { font-family: Calibri, "Segoe UI", Arial, sans-serif; font-size: 11pt; color: #1a1a1a; line-height: 1.4; }
+  h1 { font-size: 20pt; font-weight: 700; color: #1f3864; }
+  h2 { font-size: 15pt; font-weight: 700; color: #1f3864; margin-top: 18pt; }
+  h3 { font-size: 12.5pt; font-weight: 700; color: #2e4a7d; margin-top: 12pt; }
+  ul, ol { margin: 4pt 0 8pt 0; }
+  li { margin: 2pt 0; }
+  code { font-family: Consolas, "Courier New", monospace; font-size: 10pt; background: #f2f2f2; padding: 0 2pt; }
+  pre { font-family: Consolas, "Courier New", monospace; font-size: 9.5pt; background: #f5f5f5;
+        border: 1px solid #dcdcdc; padding: 8pt; white-space: pre-wrap; }
+  pre code { background: none; padding: 0; }
+  table { border-collapse: collapse; }
+  th, td { border: 1px solid #bfbfbf; padding: 4pt 8pt; }
+  th { background: #d9e1f2; }
+  hr { border: none; border-top: 1px solid #bfbfbf; }
+</style></head>
+<body><h1>4.6 User and Technical Documentation</h1>
+<h2>User Documentation</h2>
+<h3>Account Creation and Sign-In</h3>
+<ol>
+<li><strong>Initial Access:</strong> Open the Financial Health Check web application in your browser.</li>
+<li><strong>Registration:</strong> On the sign-in page, click the <strong>&quot;Create an account&quot;</strong> link.</li>
+<li><strong>Provide Details:</strong> Enter your Full Name, Company Name, Email Address, Password, and Confirm Password.</li>
+<li><strong>Password Requirements:</strong> Your password must be at least 8 characters and include at least one letter and one number.</li>
+<li><strong>Account Setup:</strong> Upon successful registration, you are signed in automatically.</li>
+<li><strong>Returning Sign-In:</strong> Existing users sign in with their registered Email Address and Password.</li>
+<li><strong>Dashboard Access:</strong> Access the Financial Health Dashboard upon successful authentication.</li>
+<li><strong>Session Duration:</strong> You remain signed in for 7 days on that browser; after expiry you are asked to sign in again.</li>
+<li><strong>Sign Out:</strong> End your session from the top navigation bar or the Account page.</li>
+</ol>
+<h3>Financial Health Dashboard</h3>
+<ul>
+<li><strong>Latest Assessment:</strong> View your most recently recorded month&#39;s result.</li>
+<li><strong>Health Score and Risk Index (0–100):</strong> A simple, intuitive rating with a color-coded band:<ul>
+<li><strong>Green — Low Risk (0–33):</strong> Healthy financial position</li>
+<li><strong>Yellow — Moderate Risk (34–66):</strong> Some areas need attention</li>
+<li><strong>Red — High Risk (67–100):</strong> Elevated risk of financial trouble</li>
+</ul>
+</li>
+<li><strong>Ratio Breakdown:</strong> Each financial ratio with a plain-English status (Healthy, Weak, Tight, Poor, or Critical).</li>
+<li><strong>Top Risk Factors:</strong> The specific ratios pushing your risk up, taken from the model&#39;s own math.</li>
+<li><strong>AI Insights:</strong> Flags on inputs that look problematic (when the AI advisor is enabled).</li>
+<li><strong>AI Advisor Chat:</strong> An opening assessment plus a live conversation tailored to your numbers and trend.</li>
+</ul>
+<h3>Entering Monthly Finances</h3>
+<ul>
+<li><strong>Month Selection:</strong> Choose the month you are recording.</li>
+<li><strong>This Month&#39;s Income:</strong><ul>
+<li><strong>Revenue:</strong> All sales / money earned this month</li>
+<li><strong>Expenses:</strong> Everything spent this month, including interest</li>
+<li><strong>Interest Paid:</strong> Loan interest included in expenses (enter 0 if none)</li>
+</ul>
+</li>
+<li><strong>End-of-Month Balances:</strong><ul>
+<li><strong>Cash on Hand:</strong> Money in the bank at month end</li>
+<li><strong>Total Assets:</strong> Everything the business owns</li>
+<li><strong>Total Liabilities:</strong> Everything the business owes</li>
+<li><strong>Owner&#39;s Equity:</strong> Your stake (Assets should equal Liabilities + Equity)</li>
+</ul>
+</li>
+<li><strong>Live Feedback:</strong> The form shows your net profit and a balance check as you type.</li>
+<li><strong>Validation:</strong><ul>
+<li><strong>Errors</strong> block saving (e.g. negative values, a balance sheet that doesn&#39;t add up, or cash greater than total assets)</li>
+<li><strong>Warnings</strong> flag likely typos (e.g. no revenue recorded, or an unusually high profit margin)</li>
+</ul>
+</li>
+</ul>
+<h3>Submission Process</h3>
+<ul>
+<li>Complete all required fields</li>
+<li>Correct any errors flagged by the form</li>
+<li>Select <strong>&quot;Save &amp; score this month&quot;</strong></li>
+<li>The system computes your ratios, scores them, and saves the month</li>
+<li>Only one assessment is kept per month — delete a month first to re-enter it</li>
+</ul>
+<h3>Viewing Assessments and History</h3>
+<ul>
+<li><strong>History List:</strong> Browse every assessment you&#39;ve run, newest first.</li>
+<li><strong>Report Details:</strong> Open any month to view its full report, including:<ul>
+<li>Figures you entered</li>
+<li>Computed ratios and their statuses</li>
+<li>Top risk factors</li>
+<li>AI insights</li>
+<li>The saved advisor conversation (which you can continue)</li>
+</ul>
+</li>
+<li><strong>Export and Print:</strong><ul>
+<li>Export a single report or your entire history as an Excel-openable CSV</li>
+<li>Print or Save as PDF using the browser&#39;s print dialog (a clean report layout is applied automatically)</li>
+</ul>
+</li>
+</ul>
+<h3>AI Financial Advisor</h3>
+<ul>
+<li><strong>Opening Assessment:</strong> A plain-English summary of what your result means.</li>
+<li><strong>Ask Questions:</strong> Type a question or tap a suggested question.</li>
+<li><strong>Trend-Aware Advice:</strong> The advisor reads your month-over-month history, not just a single snapshot.</li>
+<li><strong>Graceful Degradation:</strong> If no AI provider key is configured, scoring, history, and reports still work; the advisor simply stays disabled.</li>
+</ul>
+<h3>User Profile Management</h3>
+<ul>
+<li><strong>View Profile:</strong> See your full name, company name, and email address.</li>
+<li><strong>Update Profile:</strong> Edit your details and save; changing to an email already used by another account is rejected.</li>
+<li><strong>Change Password:</strong> Enter your current password, then a new password (twice).</li>
+<li><strong>Confidentiality:</strong> You can only ever access your own financial assessments, reports, and account information.</li>
+</ul>
+<hr>
+<h2>Technical Documentation</h2>
+<h3>Database Schema</h3>
+<p>The frontend owns all persistence using a local SQLite database (<code>frontend/data/app.db</code>).</p>
+<p><strong>Users Table</strong></p>
+<pre><code class="language-sql">CREATE TABLE users (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at    TEXT NOT NULL DEFAULT (datetime(&#39;now&#39;)),
+  full_name     TEXT NOT NULL,
+  company_name  TEXT NOT NULL,
+  email         TEXT NOT NULL,
+  password_hash TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX users_email ON users(email);
+</code></pre>
+<p><strong>Predictions Table</strong></p>
+<pre><code class="language-sql">CREATE TABLE predictions (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  created_at    TEXT NOT NULL DEFAULT (datetime(&#39;now&#39;)),
+  user_id       INTEGER,          -- owner (FK -&gt; users.id)
+  assessed_on   TEXT,
+  month         TEXT,             -- &quot;YYYY-MM&quot;
+  figures       TEXT,             -- JSON: raw dollar inputs
+  inputs        TEXT NOT NULL,    -- JSON: the 6 computed ratios
+  probability   REAL NOT NULL,
+  risk_level    TEXT NOT NULL,
+  confidence    REAL,
+  risk_index    INTEGER NOT NULL,
+  contributions TEXT,             -- JSON: per-feature risk contributions
+  ai_flags      TEXT,             -- JSON: AI input flags
+  messages      TEXT,             -- JSON: advisor conversation
+  suggestions   TEXT              -- JSON: suggested questions
+);
+
+-- One assessment per month, per user
+CREATE UNIQUE INDEX predictions_user_month ON predictions(user_id, month);
+</code></pre>
+<h3>API Endpoints</h3>
+<p><strong>Authentication Endpoints</strong></p>
+<ul>
+<li><code>POST /api/auth/register</code> – Create a new account and start a session</li>
+<li><code>POST /api/auth/login</code> – Authenticate with email and password</li>
+<li><code>POST /api/auth/logout</code> – End the current session</li>
+</ul>
+<p><strong>Profile Endpoints</strong></p>
+<ul>
+<li><code>GET /api/profile</code> – Get the current user&#39;s profile</li>
+<li><code>PATCH /api/profile</code> – Update the current user&#39;s profile</li>
+<li><code>PATCH /api/profile/password</code> – Change the current user&#39;s password</li>
+</ul>
+<p><strong>Assessment and History Endpoints</strong></p>
+<ul>
+<li><code>POST /api/predict</code> – Score a company (proxies to the Python model service)</li>
+<li><code>GET /api/history</code> – Get the current user&#39;s saved assessments</li>
+<li><code>POST /api/history</code> – Save a new assessment</li>
+<li><code>GET /api/history/[id]</code> – Get one full assessment</li>
+<li><code>PATCH /api/history/[id]</code> – Attach AI data (flags, chat, suggestions) to an assessment</li>
+<li><code>DELETE /api/history/[id]</code> – Delete an assessment</li>
+</ul>
+<p><strong>AI Endpoints</strong></p>
+<ul>
+<li><code>POST /api/advice</code> – Streamed opening assessment and advisor replies</li>
+<li><code>POST /api/flag</code> – Mark inputs as critical / warning / ok</li>
+<li><code>POST /api/suggestions</code> – Generate three follow-up questions</li>
+</ul>
+<p><strong>Model Service Endpoints (Python, port 5000)</strong></p>
+<ul>
+<li><code>GET /health</code> – Liveness check</li>
+<li><code>POST /predict</code> – Score a company from its financial ratios</li>
+</ul>
+<h3>Development Setup</h3>
+<p><strong>Prerequisites</strong></p>
+<ul>
+<li>Node.js 18+ and npm</li>
+<li>Python 3.9+ and pip</li>
+<li>(Optional) Groq API key for the AI advisor</li>
+</ul>
+<p><strong>Installation Steps</strong></p>
+<ul>
+<li><strong>Clone Repository</strong><ul>
+<li><code>git clone &lt;repository-url&gt;</code></li>
+<li><code>cd financial-risk</code></li>
+</ul>
+</li>
+<li><strong>Start the Python Model Service</strong><ul>
+<li><code>cd financial-risk-model</code></li>
+<li><code>pip install -r requirements.txt</code></li>
+<li><code>python app.py</code>  (runs on <a href="http://localhost:5000">http://localhost:5000</a>)</li>
+</ul>
+</li>
+<li><strong>Configure and Start the Frontend</strong><ul>
+<li><code>cd frontend</code></li>
+<li><code>npm install</code></li>
+<li><code>cp .env.example .env.local</code></li>
+<li>Configure the following variables:<ul>
+<li><code>AUTH_SECRET=&quot;your-generated-secret&quot;</code></li>
+<li><code>GROQ_API_KEY=&quot;your-groq-api-key&quot;</code>  (optional)</li>
+<li><code>MODEL_API_URL=&quot;http://localhost:5000&quot;</code></li>
+</ul>
+</li>
+<li><code>npm run dev</code></li>
+</ul>
+</li>
+<li><strong>Access the Application</strong><ul>
+<li>Open <a href="http://localhost:3000">http://localhost:3000</a></li>
+</ul>
+</li>
+</ul>
+<p><strong>Notes</strong></p>
+<ul>
+<li>Generate <code>AUTH_SECRET</code> with: <code>node -e &quot;console.log(require(&#39;crypto&#39;).randomBytes(32).toString(&#39;base64&#39;))&quot;</code></li>
+<li>The SQLite database file is created automatically on first run; no separate database server is required.</li>
+<li>For production, run <code>npm run build</code> then <code>npm start</code>, and deploy the frontend to a Node host with a persistent filesystem (so the SQLite file survives restarts).</li>
+</ul>
+</body></html>

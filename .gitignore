@@ -20,6 +20,11 @@ __pycache__/
 .venv/
 venv/
 
+# Local SQLite database (predictions history)
+frontend/data/
+**/data/*.db
+**/data/*.db-*
+
 # OS
 .DS_Store
 Thumbs.db

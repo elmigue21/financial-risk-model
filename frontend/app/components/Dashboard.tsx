@@ -53,7 +53,11 @@ export function Dashboard({
   const score = healthScore(result.probability);
   const band = indexBand(index);
 
-  const rows: RatioRow[] = FIELDS.map((field) => ({
+  // Only the scored ratios are shown on the dashboard; current_ratio and
+  // quick_ratio are collected for context but not surfaced here.
+  const shownFields = FIELDS.filter((f) => f.used);
+
+  const rows: RatioRow[] = shownFields.map((field) => ({
     field,
     value: inputs[field.key],
     status: classifyRatio(field, inputs[field.key]),
@@ -61,9 +65,10 @@ export function Dashboard({
   const statuses = Object.fromEntries(
     rows.map((r) => [r.field.key, r.status])
   ) as Record<FieldKey, RatioStatus>;
+  // Full lookup (all fields) so an AI flag on a non-shown ratio still resolves.
   const fieldByKey = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
 
-  const order = FIELDS.map((f) => f.key);
+  const order = shownFields.map((f) => f.key);
   const detInsights = generateInsights(statuses, order);
   const actions = recommendedActions(result.contributions, statuses);
 

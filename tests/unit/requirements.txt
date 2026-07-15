@@ -1,0 +1,5 @@
+# UT-04 imports the Flask model service (financial-risk-model/app.py), which
+# loads the trained model. Install that service's requirements plus pytest:
+#   pip install -r ../../financial-risk-model/requirements.txt
+#   pip install -r requirements.txt
+pytest==9.1.1
